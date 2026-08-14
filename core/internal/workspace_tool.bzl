@@ -1,9 +1,14 @@
 """Workspace-cd wrapper that execs a hermetic tool binary."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
-load("//go:go_sdk_env.bzl", "GO_SDK_BASH", "GO_TOOLCHAIN_TYPE", "go_sdk", "go_sdk_runfiles")
+load("//internal:labels.bzl", _lock_label = "lock_label", _manifest_label = "manifest_label", _workspace_file_label = "workspace_file_label", _workspace_rel_dir = "workspace_rel_dir")
 load("//internal:runfiles.bzl", "rlocation")
 load("//internal:workspace_cd.bzl", "WORKSPACE_BASH")
+
+lock_label = _lock_label
+manifest_label = _manifest_label
+workspace_file_label = _workspace_file_label
+workspace_rel_dir = _workspace_rel_dir
 
 def _quote_args(args):
     return " ".join([shell.quote(a) for a in args])
@@ -26,40 +31,40 @@ def workspace_test_tags(tags, *, requires_network = False):
             merged.append(tag)
     return merged
 
-def workspace_file_label(label, what = "file"):
-    """Normalize a file path to a file label (`//pkg/file` → `//pkg:file`).
-
-    Macros pass the result as a string so it resolves in the consumer.
+def wrapper_script_header(ctx, *, binaries, workspace):
+    """Shebang, runfiles helper, `$var` assignments, and cd to the workspace.
 
     Args:
-      label: `//:file`, `//pkg:file`, or `//pkg/file`.
-      what: Name used in error messages (`manifest`, `config`, …).
+      ctx: Rule context.
+      binaries: List of `[var, File]` pairs to resolve via `_rf`.
+      workspace: Marker File for `_workspace_dir`.
 
     Returns:
-      A Bazel file label.
+      A list of script chunks.
     """
-    if label.startswith("@") or label.startswith(":"):
-        fail("{} must be an absolute label in the consumer workspace, got {}".format(
-            what,
-            label,
-        ))
-    if not label.startswith("//"):
-        fail("{} must be an absolute Bazel label, got {}".format(what, label))
-    rest = label[2:]
-    if ":" in rest:
-        return label
-    if "/" not in rest:
-        return "//:" + rest
-    pkg, _, name = rest.rpartition("/")
-    if not name:
-        fail("{} must be a file, got {}".format(what, label))
-    return "//{}:{}".format(pkg, name)
+    ws = ctx.workspace_name
+    chunks = [
+        "#!/usr/bin/env bash\n",
+        "set -euo pipefail\n\n",
+        WORKSPACE_BASH,
+    ]
+    for item in binaries:
+        chunks.append("{}=$(_rf {})\n".format(item[0], shell.quote(rlocation(item[1], ws))))
+    chunks.append('cd "$(_workspace_dir "$(_rf {})")"\n'.format(
+        shell.quote(rlocation(workspace, ws)),
+    ))
+    return chunks
 
-def manifest_label(manifest):
-    """Normalize a manifest path (`//go/go.mod` → `//go:go.mod`)."""
-    return workspace_file_label(manifest, what = "manifest")
+def append_workspace_file(chunks, ctx, f, var, what):
+    """After cd to the workspace, set `$var` to the source-relative path of `f`.
 
-def _workspace_relpath(ctx, f, what):
+    Args:
+      chunks: Script chunks to append to.
+      ctx: Rule context (label used in errors).
+      f: Consumer-workspace File.
+      var: Bash variable name.
+      what: Name used in error messages (`lock`, `manifest`, …).
+    """
     rel = f.short_path
     if rel.startswith("../") or rel.startswith("/"):
         fail("{}: {} must be a file in the consumer workspace, got {}".format(
@@ -67,10 +72,7 @@ def _workspace_relpath(ctx, f, what):
             what,
             rel,
         ))
-    return rel
-
-def _append_workspace_file(chunks, ctx, f, var, what):
-    chunks.append("{}={}\n".format(var, shell.quote(_workspace_relpath(ctx, f, what))))
+    chunks.append("{}={}\n".format(var, shell.quote(rel)))
     chunks.append("""\
 if [[ ! -f "${var}" ]]; then
   echo "{what} not found: $PWD/${var}" >&2
@@ -78,7 +80,7 @@ if [[ ! -f "${var}" ]]; then
 fi
 """.format(var = var, what = what))
 
-def _tool_cmds(ctx, *, find_starlark, require_flags, manifest_flag, config_flag):
+def _tool_cmds(ctx, *, require_flags, manifest_flag, config_flag):
     flags = _quote_args(ctx.attr.flags)
     if require_flags and not ctx.attr.flags:
         fail("{}: flags must be non-empty".format(ctx.label))
@@ -90,70 +92,72 @@ def _tool_cmds(ctx, *, find_starlark, require_flags, manifest_flag, config_flag)
     tool = '"$tool"'
     if extra:
         tool = '"$tool" ' + " ".join(extra)
-    if find_starlark:
-        return """find . -path './.*' -prune -o -type f \\( \\
-    -name '*.bzl' \\
-    -o -name '*.bazel' \\
-    -o -name BUILD \\
-    -o -name '*.BUILD' \\
-    -o -name WORKSPACE \\
-    -o -name WORKSPACE.bazel \\
-    \\) -print0 \\
-    | xargs -r -0 """ + tool + " " + flags + ' "$@"\n'
     if ctx.attr.also:
-        return "{tool} {first}\nexec {tool} {second} \"$@\"\n".format(
+        return """\
+rc=0
+{tool} {first} || rc=$?
+{tool} {second} "$@" || rc=$?
+exit "$rc"
+""".format(
             tool = tool,
             first = flags,
             second = _quote_args(ctx.attr.also),
         )
     return 'exec {tool} {flags} "$@"\n'.format(tool = tool, flags = flags)
 
-def _workspace_tool_impl(
+def workspace_tool_impl(
         ctx,
         *,
         tool,
         tool_target,
-        use_go_sdk,
         pre_exec,
-        find_starlark,
         require_flags,
         manifest_flag,
         config_flag,
+        extra_chunks = [],
+        extra_runfiles = None,
         manifest = None,
         config = None):
+    """Write the workspace-cd wrapper script and return DefaultInfo.
+
+    Args:
+      ctx: Rule context.
+      tool: Executable File for the hermetic binary.
+      tool_target: Target that provides the binary's DefaultInfo/runfiles.
+      pre_exec: Optional bash after `cd`, before the tool.
+      require_flags: Fail if `flags` is empty.
+      manifest_flag: If set, pass this flag and `$manifest` before the tool argv.
+      config_flag: If set, pass this flag and `$config` before the tool argv.
+      extra_chunks: Extra bash after the header (e.g. Go SDK exports).
+      extra_runfiles: Optional runfiles to merge (e.g. Go SDK files).
+      manifest: Optional consumer-workspace File for `$manifest`.
+      config: Optional consumer-workspace File for `$config`.
+
+    Returns:
+      A list containing DefaultInfo for the wrapper script.
+    """
     if not tool:
         fail("{}: {} is not executable".format(ctx.label, tool_target.label))
 
-    ws = ctx.workspace_name
-    chunks = [
-        "#!/usr/bin/env bash\n",
-        "set -euo pipefail\n\n",
-        WORKSPACE_BASH,
-    ]
-    sdk = None
-    if use_go_sdk:
-        chunks.append(GO_SDK_BASH)
-        sdk = go_sdk(ctx)
-
-    chunks.append("tool=$(_rf {})\n".format(shell.quote(rlocation(tool, ws))))
-    if sdk:
-        chunks.append('_export_goroot "$(_rf {})"\n'.format(
-            shell.quote(rlocation(sdk.go, ws)),
-        ))
-    chunks.append('cd "$(_workspace_dir "$(_rf {})")"\n'.format(
-        shell.quote(rlocation(ctx.file.workspace, ws)),
-    ))
+    chunks = wrapper_script_header(
+        ctx,
+        binaries = [["tool", tool]],
+        workspace = ctx.file.workspace,
+    )
+    for c in extra_chunks:
+        chunks.append(c)
+        if not c.endswith("\n"):
+            chunks.append("\n")
     if manifest:
-        _append_workspace_file(chunks, ctx, manifest, "manifest", "manifest")
+        append_workspace_file(chunks, ctx, manifest, "manifest", "manifest")
     if config:
-        _append_workspace_file(chunks, ctx, config, "config", "config")
+        append_workspace_file(chunks, ctx, config, "config", "config")
     if pre_exec:
         chunks.append(pre_exec)
         if not pre_exec.endswith("\n"):
             chunks.append("\n")
     chunks.append(_tool_cmds(
         ctx,
-        find_starlark = find_starlark,
         require_flags = require_flags,
         manifest_flag = manifest_flag,
         config_flag = config_flag,
@@ -173,8 +177,8 @@ def _workspace_tool_impl(
         runfiles_files.append(config)
     runfiles = ctx.runfiles(files = runfiles_files)
     runfiles = runfiles.merge(tool_target[DefaultInfo].default_runfiles)
-    if sdk:
-        runfiles = runfiles.merge(go_sdk_runfiles(ctx, sdk))
+    if extra_runfiles:
+        runfiles = runfiles.merge(extra_runfiles)
     return [DefaultInfo(
         executable = script,
         files = depset([script]),
@@ -188,57 +192,64 @@ def workspace_tool_rule(
         tool_doc,
         flags_doc,
         tool_default = None,
-        use_go_sdk = False,
         use_manifest = False,
         manifest_flag = "",
         use_config = False,
         config_flag = "",
-        find_starlark = False,
         require_flags = False,
         executable = False,
         test = True,
-        pre_exec = ""):
+        pre_exec = "",
+        extra_toolchains = [],
+        prepare = None):
     """Return a run or test rule that cds to the workspace and execs `tool`.
 
-    `tool_default` is resolved in bazel_utils (Label in this .bzl). `workspace`,
-    `manifest`, and `config` have no rule default: the calling macro must pass
-    strings so they resolve in the consumer repo.
+    `tool_default` must be a `Label()` constructed in the calling `.bzl` file
+    (a string would resolve in this module). `workspace`, `manifest`, and
+    `config` have no rule default: the calling macro must pass strings so they
+    resolve in the consumer repo.
 
     Args:
       doc: Rule doc.
       tool_attr: Attribute name for the hermetic binary (e.g. "golangci").
       tool_doc: Attribute doc for the binary.
       flags_doc: Attribute doc for `flags`.
-      tool_default: Default label string for the binary in this module.
-      use_go_sdk: Put the resolved rules_go SDK on PATH.
+      tool_default: Default tool `Label()` from the calling `.bzl` (not a string).
       use_manifest: Require `manifest` and check it exists after cd to the workspace.
       manifest_flag: If set, pass this flag and `$manifest` before the tool argv
         (e.g. ruff `--config`).
       use_config: Require `config` and check it exists after cd to the workspace.
       config_flag: If set, pass this flag and `$config` before the tool argv
         (e.g. golangci `--config`).
-      find_starlark: Discover Starlark files with find|xargs (buildifier).
       require_flags: Fail if `flags` is empty (ruff).
       executable: If True, `bazel run` rule.
       test: If True, `bazel test` rule (default).
       pre_exec: Optional bash after `cd`, before the tool (markdownlint env).
+      extra_toolchains: Extra toolchain types (e.g. Go SDK).
+      prepare: Optional `ctx -> (extra_chunks, extra_runfiles)` after header.
 
     Returns:
       A `rule`.
     """
     if executable == test:
         fail("workspace_tool_rule: set exactly one of executable or test")
+    if extra_toolchains:
+        for t in extra_toolchains:
+            if type(t) != "Label":
+                fail("workspace_tool_rule: extra_toolchains items must be Label() in the calling .bzl, got {}".format(type(t)))
     if manifest_flag and not use_manifest:
         fail("workspace_tool_rule: manifest_flag requires use_manifest")
     if config_flag and not use_config:
         fail("workspace_tool_rule: config_flag requires use_config")
     tool_label = dict(
         executable = True,
-        cfg = "target",
+        cfg = "exec",
         doc = tool_doc,
     )
     if tool_default:
-        tool_label["default"] = Label(tool_default)
+        if type(tool_default) != "Label":
+            fail("workspace_tool_rule: tool_default must be Label() in the calling .bzl, got {}".format(type(tool_default)))
+        tool_label["default"] = tool_default
     else:
         tool_label["mandatory"] = True
 
@@ -268,16 +279,20 @@ def workspace_tool_rule(
         )
 
     def _impl(ctx):
-        return _workspace_tool_impl(
+        extra_chunks = []
+        extra_runfiles = None
+        if prepare:
+            extra_chunks, extra_runfiles = prepare(ctx)
+        return workspace_tool_impl(
             ctx,
             tool = getattr(ctx.executable, tool_attr),
             tool_target = getattr(ctx.attr, tool_attr),
-            use_go_sdk = use_go_sdk,
             pre_exec = pre_exec,
-            find_starlark = find_starlark,
             require_flags = require_flags,
             manifest_flag = manifest_flag,
             config_flag = config_flag,
+            extra_chunks = extra_chunks,
+            extra_runfiles = extra_runfiles,
             manifest = ctx.file.manifest if use_manifest else None,
             config = ctx.file.config if use_config else None,
         )
@@ -286,7 +301,7 @@ def workspace_tool_rule(
         implementation = _impl,
         executable = executable,
         test = test,
-        toolchains = [GO_TOOLCHAIN_TYPE] if use_go_sdk else [],
+        toolchains = extra_toolchains,
         attrs = attrs,
         doc = doc,
     )

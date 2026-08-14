@@ -1,15 +1,15 @@
 """Workspace govulncheck: cd to the consumer repo and run this module's binary."""
 
-load("//go:dirs.bzl", "go_list_patterns")
-load("//internal:workspace_tool.bzl", "manifest_label", "workspace_test_tags", "workspace_tool_rule")
+load("@bazel_utils_core//internal:workspace_tool.bzl", "manifest_label", "workspace_test_tags")
+load("//:dirs.bzl", "go_list_patterns")
+load("//:go_workspace_tool.bzl", "go_workspace_tool_rule")
 
-_govulncheck_test = workspace_tool_rule(
+_govulncheck_test = go_workspace_tool_rule(
     tool_attr = "govulncheck",
-    tool_default = "//go:govulncheck",
+    tool_default = Label("//:govulncheck"),
     tool_doc = "govulncheck binary from bazel_utils go.mod (override to use another).",
     flags_doc = "govulncheck arguments after the binary and before package dirs.",
     doc = "bazel test: govulncheck against the workspace (no-sandbox, needs vuln.go.dev).",
-    use_go_sdk = True,
     use_manifest = True,
 )
 

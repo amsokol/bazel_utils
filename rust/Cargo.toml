@@ -6,7 +6,7 @@ publish = false
 description = "Pins cargo-audit for crate_universe; not an application crate."
 
 [lib]
-path = "rust/lib.rs"
+path = "lib.rs"
 
 [dependencies]
 cargo-audit = { version = "=0.22.2", default-features = false }

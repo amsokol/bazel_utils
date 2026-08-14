@@ -1,0 +1,40 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":labels_test.bzl", "workspace_file_label_test", "workspace_rel_dir_test")
+
+package(default_visibility = ["//visibility:public"])
+
+bzl_library(
+    name = "labels",
+    srcs = ["labels.bzl"],
+)
+
+bzl_library(
+    name = "runfiles",
+    srcs = ["runfiles.bzl"],
+)
+
+bzl_library(
+    name = "workspace_cd",
+    srcs = ["workspace_cd.bzl"],
+)
+
+bzl_library(
+    name = "workspace_tool",
+    srcs = ["workspace_tool.bzl"],
+    deps = [
+        ":labels",
+        ":runfiles",
+        ":workspace_cd",
+        "@bazel_skylib//lib:shell",
+    ],
+)
+
+workspace_rel_dir_test(
+    name = "workspace_rel_dir_test",
+    size = "small",
+)
+
+workspace_file_label_test(
+    name = "workspace_file_label_test",
+    size = "small",
+)

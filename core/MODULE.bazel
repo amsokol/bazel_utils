@@ -1,0 +1,8 @@
+"""Starlark helpers shared by bazel_utils_* language modules."""
+
+module(
+    name = "bazel_utils_core",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.9.2")

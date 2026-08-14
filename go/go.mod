@@ -3,7 +3,6 @@ module github.com/amsokol/bazel_utils
 go 1.26.5
 
 tool (
-	github.com/bazelbuild/buildtools/buildifier
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	golang.org/x/vuln/cmd/govulncheck
 )
@@ -38,7 +37,6 @@ require (
 	github.com/alingse/nilnesserr v0.2.0 // indirect
 	github.com/ashanbrown/forbidigo/v2 v2.3.1 // indirect
 	github.com/ashanbrown/makezero/v2 v2.2.1 // indirect
-	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.3 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect

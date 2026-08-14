@@ -1,0 +1,73 @@
+"""Prebuilt buildifier (GitHub release). Fetched for the exec OS/CPU; not stored in git."""
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+_BUILDIFIER = "8.5.1"
+
+_BUILDIFIER_URL = "https://github.com/bazelbuild/buildtools/releases/download/v{version}/buildifier-{platform}"
+
+http_file(
+    name = "buildifier_linux_amd64",
+    downloaded_file_path = "buildifier",
+    executable = True,
+    sha256 = "887377fc64d23a850f4d18a077b5db05b19913f4b99b270d193f3c7334b5a9a7",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "linux-amd64",
+        version = _BUILDIFIER,
+    )],
+)
+
+http_file(
+    name = "buildifier_linux_arm64",
+    downloaded_file_path = "buildifier",
+    executable = True,
+    sha256 = "947bf6700d708026b2057b09bea09abbc3cafc15d9ecea35bb3885c4b09ccd04",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "linux-arm64",
+        version = _BUILDIFIER,
+    )],
+)
+
+http_file(
+    name = "buildifier_darwin_amd64",
+    downloaded_file_path = "buildifier",
+    executable = True,
+    sha256 = "31de189e1a3fe53aa9e8c8f74a0309c325274ad19793393919e1ca65163ca1a4",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "darwin-amd64",
+        version = _BUILDIFIER,
+    )],
+)
+
+http_file(
+    name = "buildifier_darwin_arm64",
+    downloaded_file_path = "buildifier",
+    executable = True,
+    sha256 = "62836a9667fa0db309b0d91e840f0a3f2813a9c8ea3e44b9cd58187c90bc88ba",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "darwin-arm64",
+        version = _BUILDIFIER,
+    )],
+)
+
+http_file(
+    name = "buildifier_windows_amd64",
+    downloaded_file_path = "buildifier.exe",
+    executable = True,
+    sha256 = "f4ecb9c73de2bc38b845d4ee27668f6248c4813a6647db4b4931a7556052e4e1",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "windows-amd64.exe",
+        version = _BUILDIFIER,
+    )],
+)
+
+http_file(
+    name = "buildifier_windows_arm64",
+    downloaded_file_path = "buildifier.exe",
+    executable = True,
+    sha256 = "55a276ad8b1ff46be48bf64e432264034ea69a45aa3914e89c1d1936f5c2d85c",
+    urls = [_BUILDIFIER_URL.format(
+        platform = "windows-arm64.exe",
+        version = _BUILDIFIER,
+    )],
+)

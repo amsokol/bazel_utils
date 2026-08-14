@@ -20,8 +20,20 @@ bzl_library(
 )
 
 bzl_library(
+    name = "go_workspace_tool",
+    srcs = ["go_workspace_tool.bzl"],
+    deps = [
+        ":go_sdk_env",
+        "@bazel_skylib//lib:shell",
+        "@bazel_utils_core//internal:runfiles",
+        "@bazel_utils_core//internal:workspace_tool",
+    ],
+)
+
+bzl_library(
     name = "dirs",
     srcs = ["dirs.bzl"],
+    deps = ["@bazel_utils_core//internal:labels"],
 )
 
 bzl_library(
@@ -29,7 +41,8 @@ bzl_library(
     srcs = ["golangci.bzl"],
     deps = [
         ":dirs",
-        "//internal:workspace_tool",
+        ":go_workspace_tool",
+        "@bazel_utils_core//internal:workspace_tool",
     ],
 )
 
@@ -38,6 +51,16 @@ bzl_library(
     srcs = ["govulncheck.bzl"],
     deps = [
         ":dirs",
-        "//internal:workspace_tool",
+        ":go_workspace_tool",
+        "@bazel_utils_core//internal:workspace_tool",
+    ],
+)
+
+bzl_library(
+    name = "go",
+    srcs = ["go.bzl"],
+    deps = [
+        ":golangci",
+        ":govulncheck_bzl",
     ],
 )

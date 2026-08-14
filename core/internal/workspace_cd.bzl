@@ -2,7 +2,7 @@
 
 `bazel run` sets BUILD_WORKSPACE_DIRECTORY. `bazel test` does not. Runfiles
 may contain a copy of MODULE.bazel (processwrapper) rather than a symlink, so
-dirname(realpath(marker)) is not the checkout. execroot/_main is Bazel's source
+dirname of the marker is not the checkout. execroot/_main is Bazel's source
 overlay.
 
 These snippets are concatenated into scripts (not str.format'd): bash ${var}
@@ -12,16 +12,25 @@ is written as-is.
 RUNFILES_BASH = """\
 _rf() {
   local path=$1
+  local candidate
   if [[ -n "${RUNFILES_DIR:-}" && -e "${RUNFILES_DIR}/${path}" ]]; then
-    realpath -- "${RUNFILES_DIR}/${path}"
-    return
+    candidate="${RUNFILES_DIR}/${path}"
+  elif [[ -e "$0.runfiles/${path}" ]]; then
+    candidate="$0.runfiles/${path}"
+  else
+    local manifest="${RUNFILES_MANIFEST_FILE:-}"
+    if [[ -z "$manifest" && -f "$0.runfiles_manifest" ]]; then
+      manifest="$0.runfiles_manifest"
+    fi
+    if [[ -n "$manifest" && -f "$manifest" ]]; then
+      candidate=$(awk -v p="$path" '$1 == p { print substr($0, length($1) + 2); exit }' "$manifest")
+    fi
   fi
-  if [[ -e "$0.runfiles/${path}" ]]; then
-    realpath -- "$0.runfiles/${path}"
-    return
+  if [[ -z "${candidate:-}" || ! -e "$candidate" ]]; then
+    echo "unable to locate runfile: ${path}" >&2
+    exit 1
   fi
-  echo "unable to locate runfile: ${path}" >&2
-  exit 1
+  realpath "$candidate"
 }
 """
 

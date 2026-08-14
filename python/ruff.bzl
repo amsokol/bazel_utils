@@ -1,15 +1,32 @@
 """Hermetic ruff from this module's uv lock; workspace check and format targets."""
 
 load("@bazel_lib//lib:copy_file.bzl", "COPY_FILE_TOOLCHAINS", "copy_file_action")
-load("//internal:workspace_tool.bzl", "manifest_label", "workspace_test_tags", "workspace_tool_rule")
+load("@bazel_utils_core//internal:labels.bzl", "manifest_label", "workspace_rel_dir")
+load("@bazel_utils_core//internal:workspace_tool.bzl", "workspace_test_tags", "workspace_tool_rule")
 
-def _ruff_binary_impl(ctx):
-    """Copy `bin/ruff` out of the installed ruff wheel (no console_scripts)."""
-    dirs = [
+def _install_dirs(pkg):
+    """Wheel install tree artifacts named `install` (files depset, then runfiles)."""
+    info = pkg[DefaultInfo]
+    out = [
         f
-        for f in ctx.attr.pkg[DefaultInfo].default_runfiles.files.to_list()
+        for f in info.files.to_list()
         if f.is_directory and f.basename == "install"
     ]
+    if out:
+        return out
+    return [
+        f
+        for f in info.default_runfiles.files.to_list()
+        if f.is_directory and f.basename == "install"
+    ]
+
+def _ruff_binary_impl(ctx):
+    """Copy `bin/ruff` out of the installed ruff wheel (no console_scripts).
+
+    The path lives inside a tree artifact, so it must be copied (not symlinked)
+    at analysis/execution time.
+    """
+    dirs = _install_dirs(ctx.attr.pkg)
     if len(dirs) != 1:
         fail("{}: expected one wheel install dir from {}, got {}".format(
             ctx.label,
@@ -48,27 +65,15 @@ def _ruff_paths(dirs):
     out = []
     for d in dirs:
         if d.startswith("//") or d.startswith(":") or d.startswith("@"):
-            out.append(_repo_dir(d))
+            path = workspace_rel_dir(d)
+            out.append(path if path else ".")
         else:
             out.append(d)
     return out
 
-def _repo_dir(label):
-    if label.startswith("@") or label.startswith(":"):
-        fail("dirs must be an absolute label in the consumer workspace, got {}".format(label))
-    if not label.startswith("//"):
-        fail("dirs must be an absolute Bazel label, got {}".format(label))
-    rest = label[2:]
-    if rest.startswith(":"):
-        return "."
-    if ":" in rest:
-        pkg, _, _name = rest.partition(":")
-        return pkg if pkg else "."
-    return rest if rest else "."
-
 _ruff_test = workspace_tool_rule(
     tool_attr = "ruff",
-    tool_default = "//python:ruff",
+    tool_default = Label("//:ruff"),
     tool_doc = "ruff binary from bazel_utils uv lock (override to use another).",
     flags_doc = "First ruff argv (check <dirs>).",
     doc = "bazel test: ruff check + format --check against the workspace (no-sandbox).",
@@ -80,7 +85,7 @@ _ruff_test = workspace_tool_rule(
 
 _ruff_format = workspace_tool_rule(
     tool_attr = "ruff",
-    tool_default = "//python:ruff",
+    tool_default = Label("//:ruff"),
     tool_doc = "ruff binary from bazel_utils uv lock (override to use another).",
     flags_doc = "ruff argv (format <dirs>).",
     doc = "bazel run: ruff format against the workspace.",
@@ -98,6 +103,7 @@ def ruff_test(
         tags = [],
         dirs = [],
         flags = [],
+        local = True,
         **kwargs):
     """Test that runs bazel_utils's ruff after cd to the consumer workspace.
 
@@ -105,8 +111,9 @@ def ruff_test(
     `manifest` (`[tool.ruff]` in pyproject.toml).
 
     Runs `ruff --config <manifest> check <flags> <dirs>` then
-    `ruff --config <manifest> format --check <dirs>`.
-    Defaults tags to `external`, `no-cache`, `no-sandbox`.
+    `ruff --config <manifest> format --check <dirs>` (both run; non-zero if
+    either fails). Defaults `local = True` and tags `external`, `no-cache`,
+    `no-sandbox`.
 
     Args:
       name: Target name.
@@ -115,7 +122,8 @@ def ruff_test(
       tags: Extra test tags; merged with the defaults above.
       dirs: Bazel paths from repo root (e.g. `["//python"]` → `python`).
       flags: Extra ruff check flags before `dirs`.
-      **kwargs: Forwarded to the test rule (`ruff`, `size`, `local`, …).
+      local: Run outside the sandbox (default True).
+      **kwargs: Forwarded to the test rule (`ruff`, `size`, …).
     """
     paths = _ruff_paths(dirs)
     _ruff_test(
@@ -125,6 +133,7 @@ def ruff_test(
         tags = workspace_test_tags(tags),
         flags = ["check"] + flags + paths,
         also = ["format", "--check"] + paths,
+        local = local,
         **kwargs
     )
 

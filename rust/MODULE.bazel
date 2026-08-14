@@ -1,4 +1,13 @@
-"""Rust toolchain crates for tools (cargo-audit)."""
+"""cargo-audit from this module's Cargo.lock."""
+
+module(
+    name = "bazel_utils_rust",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
+bazel_dep(name = "bazel_utils_core", version = "0.1.0")
+bazel_dep(name = "rules_rust", version = "0.73.0")
 
 cargo = use_extension(
     "@rules_rust//crate_universe:extensions.bzl",

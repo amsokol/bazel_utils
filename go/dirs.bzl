@@ -1,5 +1,7 @@
 """Convert Bazel paths from the workspace root to go list patterns."""
 
+load("@bazel_utils_core//internal:labels.bzl", "workspace_rel_dir")
+
 def go_list_patterns(dirs):
     """Return go list patterns for `dirs` from the workspace root.
 
@@ -16,33 +18,8 @@ def go_list_patterns(dirs):
     out = []
     for d in dirs:
         if d.startswith("//") or d.startswith(":") or d.startswith("@"):
-            out.append(_bazel_dir_pattern(d))
+            path = workspace_rel_dir(d)
+            out.append("./..." if not path else "./" + path + "/...")
         else:
             out.append(d)
     return out
-
-def _require_abs_label(label, what):
-    if label.startswith("@") or label.startswith(":"):
-        fail("{} must be an absolute label in the consumer workspace, got {}".format(
-            what,
-            label,
-        ))
-    if not label.startswith("//"):
-        fail("{} must be an absolute Bazel label, got {}".format(what, label))
-    return label[2:]
-
-def _repo_dir(label):
-    """Workspace-relative directory: `//go/app/src` → `go/app/src`."""
-    rest = _require_abs_label(label, "dirs")
-    if rest.startswith(":"):
-        return ""
-    if ":" in rest:
-        pkg, _, _name = rest.partition(":")
-        return pkg
-    return rest
-
-def _bazel_dir_pattern(d):
-    path = _repo_dir(d)
-    if not path:
-        return "./..."
-    return "./" + path + "/..."

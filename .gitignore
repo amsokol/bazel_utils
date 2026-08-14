@@ -34,6 +34,14 @@ go.work.sum
 # Bazel
 /.bazel/
 
+# Nested modules are consumed via local_path_override; only the aggregator lock is committed.
+/core/MODULE.bazel.lock
+/go/MODULE.bazel.lock
+/python/MODULE.bazel.lock
+/rust/MODULE.bazel.lock
+/markdown/MODULE.bazel.lock
+/bazel/MODULE.bazel.lock
+
 # Node (markdownlint-cli2 via aspect_rules_js)
 node_modules/
 
@@ -43,4 +51,4 @@ __pycache__/
 .ruff_cache/
 
 # Rust (cargo-audit via crate_universe)
-/target/
+target/

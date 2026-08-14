@@ -7,7 +7,7 @@ GO_SDK_BASH is concatenated into scripts (not str.format'd): bash ${var} is
 written as-is.
 """
 
-GO_TOOLCHAIN_TYPE = "@rules_go//go:toolchain"
+GO_TOOLCHAIN_TYPE = Label("@rules_go//go:toolchain")
 
 GO_SDK_BASH = """\
 _export_goroot() {

@@ -2,6 +2,11 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+])
+
 # cargo-audit from this module's Cargo.lock (crate_universe binary).
 alias(
     name = "cargo-audit",
@@ -12,9 +17,13 @@ bzl_library(
     name = "cargo_audit_bzl",
     srcs = ["cargo_audit.bzl"],
     deps = [
-        "//internal:runfiles",
-        "//internal:workspace_cd",
-        "//internal:workspace_tool",
         "@bazel_skylib//lib:shell",
+        "@bazel_utils_core//internal:workspace_tool",
     ],
+)
+
+bzl_library(
+    name = "rust",
+    srcs = ["rust.bzl"],
+    deps = [":cargo_audit_bzl"],
 )

@@ -1,15 +1,15 @@
 """Workspace golangci-lint: cd to the consumer repo and run this module's binary."""
 
-load("//go:dirs.bzl", "go_list_patterns")
-load("//internal:workspace_tool.bzl", "manifest_label", "workspace_file_label", "workspace_test_tags", "workspace_tool_rule")
+load("@bazel_utils_core//internal:workspace_tool.bzl", "manifest_label", "workspace_file_label", "workspace_test_tags")
+load("//:dirs.bzl", "go_list_patterns")
+load("//:go_workspace_tool.bzl", "go_workspace_tool_rule")
 
-_golangci_test = workspace_tool_rule(
+_golangci_test = go_workspace_tool_rule(
     tool_attr = "golangci",
-    tool_default = "//go:golangci-lint",
+    tool_default = Label("//:golangci-lint"),
     tool_doc = "golangci-lint binary from bazel_utils go.mod (override to use another).",
     flags_doc = "golangci-lint arguments after `run` and before package dirs.",
     doc = "bazel test: golangci-lint against the workspace (no-sandbox).",
-    use_go_sdk = True,
     use_manifest = True,
     use_config = True,
     config_flag = "--config",

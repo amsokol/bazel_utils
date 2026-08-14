@@ -1,8 +1,13 @@
 load("@aspect_rules_py//uv/unstable:defs.bzl", "py_console_script_binary")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("//python:ruff.bzl", "ruff_binary")
+load("//:ruff.bzl", "ruff_binary")
 
 package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "pyproject.toml",
+    "uv.lock",
+])
 
 ruff_binary(
     name = "ruff",
@@ -14,8 +19,7 @@ py_console_script_binary(
     name = "pip-audit",
     pkg = "@bazel_utils_pypi//pip_audit",
     venv = "dev",
-    # cyclonedx-python-lib imports typing_extensions on the 3.11 toolchain;
-    # the hub marker does not pull it in automatically.
+    # Hub marker does not pull typing_extensions (cyclonedx-python-lib).
     deps = ["@bazel_utils_pypi//typing_extensions"],
 )
 
@@ -23,8 +27,9 @@ bzl_library(
     name = "ruff_bzl",
     srcs = ["ruff.bzl"],
     deps = [
-        "//internal:workspace_tool",
         "@bazel_lib//lib:copy_file",
+        "@bazel_utils_core//internal:labels",
+        "@bazel_utils_core//internal:workspace_tool",
     ],
 )
 
@@ -32,9 +37,16 @@ bzl_library(
     name = "pip_audit_bzl",
     srcs = ["pip_audit.bzl"],
     deps = [
-        "//internal:runfiles",
-        "//internal:workspace_cd",
-        "//internal:workspace_tool",
         "@bazel_skylib//lib:shell",
+        "@bazel_utils_core//internal:workspace_tool",
+    ],
+)
+
+bzl_library(
+    name = "python",
+    srcs = ["python.bzl"],
+    deps = [
+        ":pip_audit_bzl",
+        ":ruff_bzl",
     ],
 )

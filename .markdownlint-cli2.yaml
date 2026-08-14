@@ -1,0 +1,15 @@
+# markdownlint-cli2 config (https://github.com/DavidAnson/markdownlint-cli2)
+config:
+  default: true
+  MD013: false
+  MD033: false
+  MD024:
+    siblings_only: true
+
+globs:
+  - "**/*.md"
+
+ignores:
+  - ".venv/**"
+  - "**/node_modules/**"
+  - ".bazel/**"

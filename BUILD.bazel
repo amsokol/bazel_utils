@@ -1,42 +1,23 @@
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@bazel_utils_bazel//:bazel.bzl", "buildifier_format", "buildifier_test")
+load("@bazel_utils_md//:markdown.bzl", "markdownlint_test")
 
 package(default_visibility = ["//visibility:public"])
 
-npm_link_all_packages(name = "node_modules")
+exports_files([
+    ".markdownlint-cli2.yaml",
+    "MODULE.bazel",
+])
 
-bzl_library(
-    name = "go",
-    srcs = ["go.bzl"],
-    deps = [
-        "//go:golangci",
-        "//go:govulncheck_bzl",
-    ],
+buildifier_test(
+    name = "lint",
+    size = "small",
 )
 
-bzl_library(
-    name = "bazel",
-    srcs = ["bazel.bzl"],
-    deps = ["//bazel:buildifier_bzl"],
+buildifier_format(
+    name = "format",
 )
 
-bzl_library(
-    name = "python",
-    srcs = ["python.bzl"],
-    deps = [
-        "//python:pip_audit_bzl",
-        "//python:ruff_bzl",
-    ],
-)
-
-bzl_library(
-    name = "rust",
-    srcs = ["rust.bzl"],
-    deps = ["//rust:cargo_audit_bzl"],
-)
-
-bzl_library(
+markdownlint_test(
     name = "markdown",
-    srcs = ["markdown.bzl"],
-    deps = ["//markdown:markdown"],
+    size = "small",
 )
