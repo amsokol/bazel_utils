@@ -35,8 +35,10 @@ def _go_mod_relpath(ctx, go_mod):
         ))
     return rel
 
-def _tool_cmds(ctx, *, find_starlark):
+def _tool_cmds(ctx, *, find_starlark, require_flags):
     flags = _quote_args(ctx.attr.flags)
+    if require_flags and not ctx.attr.flags:
+        fail("{}: flags must be non-empty".format(ctx.label))
     if find_starlark:
         return """find . -path './.*' -prune -o -type f \\( \\
     -name '*.bzl' \\
@@ -47,6 +49,11 @@ def _tool_cmds(ctx, *, find_starlark):
     -o -name WORKSPACE.bazel \\
     \\) -print0 \\
     | xargs -r -0 "$tool" """ + flags + ' "$@"\n'
+    if ctx.attr.also:
+        return '"$tool" {first}\nexec "$tool" {second} "$@"\n'.format(
+            first = flags,
+            second = _quote_args(ctx.attr.also),
+        )
     return 'exec "$tool" {flags} "$@"\n'.format(flags = flags)
 
 def _workspace_tool_impl(
@@ -57,6 +64,7 @@ def _workspace_tool_impl(
         use_go_sdk,
         pre_exec,
         find_starlark,
+        require_flags,
         go_mod = None):
     if not tool:
         fail("{}: {} is not executable".format(ctx.label, tool_target.label))
@@ -92,7 +100,7 @@ fi
         chunks.append(pre_exec)
         if not pre_exec.endswith("\n"):
             chunks.append("\n")
-    chunks.append(_tool_cmds(ctx, find_starlark = find_starlark))
+    chunks.append(_tool_cmds(ctx, find_starlark = find_starlark, require_flags = require_flags))
 
     script = ctx.actions.declare_file(ctx.label.name + ".bash")
     ctx.actions.write(
@@ -121,6 +129,7 @@ def workspace_tool_rule(
         use_go_sdk = False,
         use_go_mod = False,
         find_starlark = False,
+        require_flags = False,
         executable = False,
         test = True,
         pre_exec = ""):
@@ -139,6 +148,7 @@ def workspace_tool_rule(
       use_go_sdk: Put the resolved rules_go SDK on PATH.
       use_go_mod: Require `go_mod` and check it exists after cd to the workspace.
       find_starlark: Discover Starlark files with find|xargs (buildifier).
+      require_flags: Fail if `flags` is empty (ruff).
       executable: If True, `bazel run` rule.
       test: If True, `bazel test` rule (default).
       pre_exec: Optional bash after `cd`, before the tool (markdownlint env).
@@ -161,6 +171,9 @@ def workspace_tool_rule(
     attrs = {
         tool_attr: attr.label(**tool_label),
         "flags": attr.string_list(doc = flags_doc),
+        "also": attr.string_list(
+            doc = "Optional second tool argv after flags (e.g. ruff format --check).",
+        ),
         "workspace": attr.label(
             mandatory = True,
             allow_single_file = True,
@@ -182,6 +195,7 @@ def workspace_tool_rule(
             use_go_sdk = use_go_sdk,
             pre_exec = pre_exec,
             find_starlark = find_starlark,
+            require_flags = require_flags,
             go_mod = ctx.file.go_mod if use_go_mod else None,
         )
 

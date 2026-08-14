@@ -21,6 +21,12 @@ bzl_library(
 )
 
 bzl_library(
+    name = "python",
+    srcs = ["python.bzl"],
+    deps = ["//python:ruff_bzl"],
+)
+
+bzl_library(
     name = "markdown",
     srcs = ["markdown.bzl"],
     deps = ["//markdown:markdown"],

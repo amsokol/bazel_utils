@@ -36,3 +36,8 @@ go.work.sum
 
 # Node (markdownlint-cli2 via aspect_rules_js)
 node_modules/
+
+# Python (ruff via aspect_rules_py uv hub)
+.venv/
+__pycache__/
+.ruff_cache/

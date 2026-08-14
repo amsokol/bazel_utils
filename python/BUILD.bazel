@@ -1,0 +1,18 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("//python:ruff.bzl", "ruff_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+ruff_binary(
+    name = "ruff",
+    pkg = "@bazel_utils_pypi//ruff",
+)
+
+bzl_library(
+    name = "ruff_bzl",
+    srcs = ["ruff.bzl"],
+    deps = [
+        "//internal:workspace_tool",
+        "@bazel_lib//lib:copy_file",
+    ],
+)
