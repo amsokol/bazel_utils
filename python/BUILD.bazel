@@ -1,3 +1,4 @@
+load("@aspect_rules_py//uv/unstable:defs.bzl", "py_console_script_binary")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("//python:ruff.bzl", "ruff_binary")
 
@@ -8,11 +9,32 @@ ruff_binary(
     pkg = "@bazel_utils_pypi//ruff",
 )
 
+# pip-audit from this module's uv.lock [dependency-groups] `dev`.
+py_console_script_binary(
+    name = "pip-audit",
+    pkg = "@bazel_utils_pypi//pip_audit",
+    venv = "dev",
+    # cyclonedx-python-lib imports typing_extensions on the 3.11 toolchain;
+    # the hub marker does not pull it in automatically.
+    deps = ["@bazel_utils_pypi//typing_extensions"],
+)
+
 bzl_library(
     name = "ruff_bzl",
     srcs = ["ruff.bzl"],
     deps = [
         "//internal:workspace_tool",
         "@bazel_lib//lib:copy_file",
+    ],
+)
+
+bzl_library(
+    name = "pip_audit_bzl",
+    srcs = ["pip_audit.bzl"],
+    deps = [
+        "//internal:runfiles",
+        "//internal:workspace_cd",
+        "//internal:workspace_tool",
+        "@bazel_skylib//lib:shell",
     ],
 )

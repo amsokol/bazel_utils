@@ -1,4 +1,4 @@
-"""Python toolchain and ruff from this module's uv.lock."""
+"""Python toolchain, ruff, and pip-audit from this module's uv.lock."""
 
 uv_bin = use_extension("@aspect_rules_py//uv/unstable:extension.bzl", "uv_bin")
 uv_bin.toolchain()
