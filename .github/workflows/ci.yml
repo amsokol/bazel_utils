@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Bazel
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BAZELISK_VERSION: 1.29.0
+      BAZELISK_SHA256: 5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Bazelisk
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/bazelisk \
+            "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
+          echo "${BAZELISK_SHA256}  /tmp/bazelisk" | sha256sum -c
+          sudo install -m 0755 /tmp/bazelisk /usr/local/bin/bazel
+
+      - name: Cache Bazel
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          key: bazel-${{ runner.os }}-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'markdown/pnpm-lock.yaml', 'python/uv.lock', 'go/go.sum') }}
+          restore-keys: |
+            bazel-${{ runner.os }}-
+
+      - name: Build
+        run: bazel build //... --keep_going
+
+      - name: Test
+        run: bazel test //... --keep_going --test_output=errors
