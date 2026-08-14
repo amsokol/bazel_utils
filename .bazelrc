@@ -1,0 +1,2 @@
+# Use a symlink prefix to avoid clobbering the workspace root.
+build --symlink_prefix=.bazel/

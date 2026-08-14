@@ -1,0 +1,14 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@npm//:markdownlint-cli2/package_json.bzl", markdownlint_cli2_bin = "bin")
+
+package(default_visibility = ["//visibility:public"])
+
+markdownlint_cli2_bin.markdownlint_cli2_binary(
+    name = "markdownlint-cli2",
+)
+
+bzl_library(
+    name = "markdown",
+    srcs = ["markdown.bzl"],
+    deps = ["//internal:workspace_tool"],
+)

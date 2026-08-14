@@ -1,0 +1,24 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//:__subpackages__"])
+
+bzl_library(
+    name = "runfiles",
+    srcs = ["runfiles.bzl"],
+)
+
+bzl_library(
+    name = "workspace_cd",
+    srcs = ["workspace_cd.bzl"],
+)
+
+bzl_library(
+    name = "workspace_tool",
+    srcs = ["workspace_tool.bzl"],
+    deps = [
+        ":runfiles",
+        ":workspace_cd",
+        "//go:go_sdk_env",
+        "@bazel_skylib//lib:shell",
+    ],
+)
