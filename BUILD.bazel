@@ -21,3 +21,11 @@ markdownlint_test(
     name = "markdown",
     size = "small",
 )
+
+test_suite(
+    name = "core_tests",
+    tests = [
+        "@bazel_utils_core//internal:workspace_file_label_test",
+        "@bazel_utils_core//internal:workspace_rel_dir_test",
+    ],
+)

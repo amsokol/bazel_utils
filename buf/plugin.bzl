@@ -1,10 +1,15 @@
-"""Executable wrapper whose target name is the PATH name buf looks up."""
+"""Executable wrapper whose target name is the PATH name buf looks up.
+
+Pass the target to `buf_generate(plugins = ...)`. `name` must match `local:`
+in the generate template. `native.alias` is transparent, so wrap crate_universe
+`*_bin` (and any other mismatched binary name) with this rule.
+"""
 
 def _buf_plugin_impl(ctx):
     """Wrap an executable so ctx.label.name is the PATH plugin name.
 
-    native.alias is transparent: ctx.attr.plugins then sees the actual
-    rust_binary name (often `*_bin` from crate_universe).
+    native.alias is transparent: generate then sees the actual rust_binary
+    name (often `*_bin` from crate_universe).
     """
     actual = ctx.attr.actual[DefaultInfo]
     exe = actual.files_to_run.executable

@@ -27,6 +27,11 @@ def _alias_repo_impl(rctx):
             actuals[i],
         ))
     rctx.file("BUILD.bazel", "".join(lines))
+    plugin_labels = [
+        '    "@buf_plugins//:{}",\n'.format(n)
+        for n in names
+    ]
+    rctx.file("plugins.bzl", "BUF_PLUGIN_LABELS = [\n" + "".join(plugin_labels) + "]\n")
     rctx.file("REPO.bazel", "")
 
 _alias_repo = repository_rule(

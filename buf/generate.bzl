@@ -1,9 +1,12 @@
 """Hermetic buf generate and staged buf_module.
 
 Buf CLI is `@buf//:buf` from `buf.toolchains(version)` (cannot use go_binary — bufprivateusage).
-Local codegen plugins are Bazel-built executables on PATH. `remote:` plugins and
+Hub plugins from `buf.plugins()` (`@buf_plugins`) and consumer `plugins`
+(`buf_plugin` or any executable) are put on PATH. `remote:` plugins and
 `buf.yaml` `deps` are fetched from the BSR (needs network).
 """
+
+load("@buf_plugins//:plugins.bzl", "BUF_PLUGIN_LABELS")
 
 BufGeneratedInfo = provider(
     doc = "Generated files from buf_generate.",
@@ -12,23 +15,42 @@ BufGeneratedInfo = provider(
     },
 )
 
-def _module_directory(ctx):
-    """Single TreeArtifact from a buf_module dependency."""
-    files = ctx.files.module
-    if len(files) != 1:
-        fail("{}: module must be a single directory (buf_module), got {}".format(
+BufModuleInfo = provider(
+    doc = "Staged buf.yaml + protos from buf_module.",
+    fields = {
+        "directory": "TreeArtifact (buf.yaml + protos at workspace-relative paths).",
+        "srcs": "Proto Files in the consumer workspace (format --path).",
+        "config": "Consumer buf.yaml File.",
+    },
+)
+
+def _workspace_rel(ctx, f, what):
+    """short_path of a file that must live in the consumer workspace."""
+    rel = f.short_path
+    if rel.startswith("../") or rel.startswith("/"):
+        fail("{}: {} must be a file in the consumer workspace, got {}".format(
             ctx.label,
-            [f.path for f in files],
+            what,
+            rel,
         ))
-    return files[0]
+    return rel
+
+def _module_directory(ctx):
+    """TreeArtifact from a buf_module dependency."""
+    return ctx.attr.module[BufModuleInfo].directory
+
+def _plugin_targets(ctx):
+    """Hub plugins, then consumer `plugins` (same PATH name: later wins)."""
+    return list(getattr(ctx.attr, "_plugins", [])) + list(getattr(ctx.attr, "plugins", []))
 
 def _plugin_path_lines(ctx):
-    """Write PATH wrappers that exec Bazel-built local plugins."""
-    lines = [
-        'PLUGIN_BIN="$WORKDIR/plugin_bin"',
-        'mkdir -p "$PLUGIN_BIN"',
-    ]
-    for i, target in enumerate(ctx.attr.plugins):
+    """Write PATH wrappers that exec Bazel-built local plugins.
+
+    Wrappers live in `$PLUGIN_BIN`, which `_workdir_lines` places next to
+    (not inside) `$WORKDIR` so `find` during generate does not see them.
+    """
+    lines = []
+    for i, target in enumerate(_plugin_targets(ctx)):
         exe = target[DefaultInfo].files_to_run.executable
         if not exe:
             fail("{}: plugin {} has no executable".format(ctx.label, target.label))
@@ -46,31 +68,38 @@ def _plugin_path_lines(ctx):
         ]))
     lines.append('export PATH="$PLUGIN_BIN:$PATH"')
     lines.extend([
-        'export HOME="$WORKDIR/home"',
-        'export BUF_CACHE_DIR="$WORKDIR/buf-cache"',
-        'mkdir -p "$HOME" "$BUF_CACHE_DIR"',
+        'export HOME="$HOME_DIR"',
+        'export BUF_CACHE_DIR="$BUF_CACHE_DIR"',
     ])
     return lines
 
 def _workdir_lines(ctx, buf_bin, module_dir):
-    """Copy buf_module into a workdir for the hermetic buf CLI."""
+    """Copy buf_module into a workdir; cache/home/plugins sit beside it."""
+    prefix = ctx.label.name
     return [
         "set -euo pipefail",
         'BUF="$(realpath "{}")"'.format(buf_bin.path),
-        'WORKDIR="$PWD/{}.work"'.format(ctx.label.name),
-        'rm -rf "$WORKDIR"',
-        'mkdir -p "$WORKDIR"',
+        'WORKDIR="$PWD/{}.work"'.format(prefix),
+        'PLUGIN_BIN="$PWD/{}.plugin_bin"'.format(prefix),
+        'HOME_DIR="$PWD/{}.home"'.format(prefix),
+        'BUF_CACHE_DIR="$PWD/{}.buf-cache"'.format(prefix),
+        'rm -rf "$WORKDIR" "$PLUGIN_BIN" "$HOME_DIR" "$BUF_CACHE_DIR"',
+        'mkdir -p "$WORKDIR" "$PLUGIN_BIN" "$HOME_DIR" "$BUF_CACHE_DIR"',
         'cp -a "{}/." "$WORKDIR/"'.format(module_dir.path),
         'chmod -R u+w "$WORKDIR"',
     ]
 
 def _run_buf(ctx, *, module_dir, outputs, extra_inputs, extra_tools, lines, mnemonic, progress_message):
     """Run hermetic `$BUF ...` with a prebuilt buf CLI over a staged module."""
-    buf_bin = ctx.executable._buf
+    buf_bin = ctx.executable.buf
     plugin_tools = [
         t[DefaultInfo].files_to_run
-        for t in getattr(ctx.attr, "plugins", [])
+        for t in _plugin_targets(ctx)
     ]
+    env = {}
+    token = ctx.configuration.default_shell_env.get("BUF_TOKEN")
+    if token:
+        env["BUF_TOKEN"] = token
     ctx.actions.run_shell(
         outputs = outputs,
         inputs = depset(
@@ -80,14 +109,15 @@ def _run_buf(ctx, *, module_dir, outputs, extra_inputs, extra_tools, lines, mnem
         command = "\n".join(_workdir_lines(ctx, buf_bin, module_dir) + lines),
         mnemonic = mnemonic,
         progress_message = progress_message,
+        env = env,
         use_default_shell_env = True,
         execution_requirements = {"requires-network": "1"},
     )
 
 _MODULE_ATTR = attr.label(
-    allow_files = True,
     mandatory = True,
-    doc = "buf_module TreeArtifact (staged buf.yaml + protos).",
+    providers = [BufModuleInfo],
+    doc = "buf_module (staged buf.yaml + protos).",
 )
 
 _BUF_ATTR = attr.label(
@@ -95,31 +125,45 @@ _BUF_ATTR = attr.label(
     executable = True,
     cfg = "exec",
     allow_single_file = True,
+    doc = "Prebuilt Buf CLI from GitHub releases (override to use another).",
 )
 
-_PLUGIN_ATTR = attr.label_list(
-    cfg = "exec",
-    allow_files = True,
-    doc = "Local codegen plugins; wrapped onto PATH under their target names. Omit when the template is all remote:.",
-)
+def _copy_generated_lines():
+    """Run buf generate and copy the files it wrote (common parent of new files)."""
+    return [
+        "find . -type f -print | sort > \"$WORKDIR.before_files\"",
+        '"$BUF" generate --template buf.gen.yaml',
+        "find . -type f -print | sort > \"$WORKDIR.after_files\"",
+        "comm -13 \"$WORKDIR.before_files\" \"$WORKDIR.after_files\" > \"$WORKDIR.new_files\"",
+        'if [[ ! -s "$WORKDIR.new_files" ]]; then',
+        '  echo "buf_generate: buf generate wrote no files" >&2',
+        "  exit 1",
+        "fi",
+        "COMMON=",
+        "while IFS= read -r f; do",
+        '  d=$(dirname "$f")',
+        '  if [[ -z "$COMMON" ]]; then',
+        '    COMMON="$d"',
+        "  else",
+        '    while [[ "$d" != "$COMMON" && "$d" != "$COMMON"/* ]]; do',
+        '      if [[ "$COMMON" == "." ]]; then',
+        '        echo "buf_generate: generated files do not share a directory" >&2',
+        "        exit 1",
+        "      fi",
+        '      COMMON=$(dirname "$COMMON")',
+        "    done",
+        "  fi",
+        'done < "$WORKDIR.new_files"',
+        'if [[ -z "$COMMON" || "$COMMON" == "." ]]; then',
+        '  echo "buf_generate: generated files do not share a directory" >&2',
+        "  exit 1",
+        "fi",
+        'cp -a "$COMMON/." "$OUT/"',
+    ]
 
 def _buf_generate_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.label.name)
-    outdir = ctx.attr.outdir
     module_dir = _module_directory(ctx)
-
-    if ctx.attr.include_imports or ctx.attr.full_tree:
-        generated_rel = outdir
-    else:
-        proto_dir = ctx.attr.proto_dir
-        if not proto_dir:
-            fail("{}: proto_dir is required when include_imports/full_tree is False".format(ctx.label))
-        generated_rel = "{}/{}".format(outdir, proto_dir)
-
-    path_flags = "".join([' --path "{}"'.format(p) for p in ctx.attr.paths])
-    generate = '"$BUF" generate --template buf.gen.yaml{}'.format(path_flags)
-    if ctx.attr.include_imports:
-        generate += " --include-imports"
 
     lines = _plugin_path_lines(ctx) + [
         'cp "{}" "$WORKDIR/buf.gen.yaml"'.format(ctx.file.template.path),
@@ -127,21 +171,7 @@ def _buf_generate_impl(ctx):
         'OUT="$(realpath "{}")"'.format(out_dir.path),
         'cd "$WORKDIR"',
         '"$BUF" dep update',
-        generate,
-        'if [[ ! -d "{}" ]]; then'.format(generated_rel),
-        '  echo "buf_generate: expected \'{}\' was not created" >&2'.format(generated_rel),
-        "  exit 1",
-        "fi",
-        'cp -a "{}/." "$OUT/"'.format(generated_rel),
-    ]
-    if ctx.attr.ensure_python_init:
-        lines.extend([
-            'find "$OUT" -type d -print0 | while IFS= read -r -d "" d; do',
-            '  if [[ ! -f "$d/__init__.py" ]]; then',
-            "    printf '%s\\n' 'from __future__ import annotations' > \"$d/__init__.py\"",
-            "  fi",
-            "done",
-        ])
+    ] + _copy_generated_lines()
 
     _run_buf(
         ctx,
@@ -162,52 +192,52 @@ buf_generate = rule(
     implementation = _buf_generate_impl,
     doc = """`buf generate` over a buf_module.
 
-Local plugins (if any) are Bazel-built and put on PATH. `remote:` plugins in
-the template are fetched from the BSR (the action requires network).
-`buf dep update` resolves `buf.yaml` `deps` into the action workdir.
+Hub plugins from `buf.plugins()` and `plugins` (typically `buf_plugin`)
+are put on PATH. Target name is the PATH name (`local:` in the template).
+A consumer plugin with the same name as a hub plugin overrides it.
+`remote:` plugins in the template are fetched from the BSR (the action
+requires network). `buf dep update` resolves `buf.yaml` `deps` into the
+action workdir.
 
-Returns a directory TreeArtifact and BufGeneratedInfo for write_source_files.
+The template is passed to `buf generate --template` as-is (`out`,
+`include_imports`, `include_wkt`, `inputs`). This rule does not parse it.
+Generated files must share a single directory (one TreeArtifact); use a
+separate `buf_generate` per template when `out` paths are unrelated.
 
-Without include_imports/full_tree: contents of `<outdir>/<proto_dir>/`.
-With include_imports or full_tree: full `<outdir>/` tree.
+Cache, HOME, and plugin PATH wrappers sit beside the workdir so they are
+not copied into the output.
+
+BSR fetches (`buf dep update`, `remote:` plugins) need `BUF_TOKEN` in the
+action env: `build --action_env=BUF_TOKEN` (sandbox does not inherit the
+user shell).
+
+Returns a directory TreeArtifact of the files buf wrote and BufGeneratedInfo
+for write_source_files.
 """,
     attrs = {
         "module": _MODULE_ATTR,
         "template": attr.label(
             allow_single_file = True,
             mandatory = True,
-            doc = "buf.gen.yaml template.",
+            doc = "buf.gen.yaml passed to `buf generate --template`.",
         ),
-        "outdir": attr.string(
-            mandatory = True,
-            doc = "plugins[].out from the template (e.g. \"go\").",
+        "plugins": attr.label_list(
+            cfg = "exec",
+            allow_files = True,
+            doc = "Consumer-built local plugins. Target name is the PATH name (`local:` in the template). Wrap with buf_plugin when the binary name differs.",
         ),
-        "proto_dir": attr.string(
-            default = "",
-            doc = "Proto package dir inside the module (e.g. \"api/v1\"). Required unless include_imports/full_tree.",
+        "_plugins": attr.label_list(
+            default = BUF_PLUGIN_LABELS,
+            cfg = "exec",
+            allow_files = True,
         ),
-        "include_imports": attr.bool(
-            default = False,
-            doc = "Pass --include-imports to buf generate.",
-        ),
-        "full_tree": attr.bool(
-            default = False,
-            doc = "Copy the whole outdir tree without --include-imports.",
-        ),
-        "ensure_python_init": attr.bool(
-            default = False,
-            doc = "Write missing __init__.py under the generated tree (protoc-gen-py omits them).",
-        ),
-        "paths": attr.string_list(
-            doc = "Repeated `buf generate --path`. Empty = whole module (buf.yaml includes).",
-        ),
-        "plugins": _PLUGIN_ATTR,
-        "_buf": _BUF_ATTR,
+        "buf": _BUF_ATTR,
     },
 )
 
 def _buf_module_impl(ctx):
     """Stage workspace-relative protos and the consumer buf.yaml."""
+    _workspace_rel(ctx, ctx.file.config, "buf.yaml")
     out = ctx.actions.declare_directory(ctx.label.name)
     lines = [
         "set -euo pipefail",
@@ -217,8 +247,9 @@ def _buf_module_impl(ctx):
         'cp "{}" "$OUT/buf.yaml"'.format(ctx.file.config.path),
     ]
     for src in ctx.files.srcs:
-        lines.append('mkdir -p "$OUT/$(dirname "{}")"'.format(src.short_path))
-        lines.append('cp "{}" "$OUT/{}"'.format(src.path, src.short_path))
+        rel = _workspace_rel(ctx, src, "proto")
+        lines.append('mkdir -p "$OUT/$(dirname "{}")"'.format(rel))
+        lines.append('cp "{}" "$OUT/{}"'.format(src.path, rel))
     ctx.actions.run_shell(
         outputs = [out],
         inputs = depset(direct = [ctx.file.config] + ctx.files.srcs),
@@ -227,7 +258,14 @@ def _buf_module_impl(ctx):
         progress_message = "Staging buf module %{label}",
         use_default_shell_env = True,
     )
-    return [DefaultInfo(files = depset([out]))]
+    return [
+        DefaultInfo(files = depset([out])),
+        BufModuleInfo(
+            directory = out,
+            srcs = ctx.files.srcs,
+            config = ctx.file.config,
+        ),
+    ]
 
 _buf_module = rule(
     implementation = _buf_module_impl,

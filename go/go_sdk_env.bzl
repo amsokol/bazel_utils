@@ -12,7 +12,7 @@ GO_TOOLCHAIN_TYPE = Label("@rules_go//go:toolchain")
 GO_SDK_BASH = """\
 _export_goroot() {
   local go_bin
-  go_bin=$(realpath -- "$1")
+  go_bin=$(realpath "$1")
   export GOROOT="$(dirname "$(dirname "$go_bin")")"
   export PATH="$GOROOT/bin:${PATH:-}"
   export GOTOOLCHAIN=local
