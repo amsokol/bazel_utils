@@ -6,6 +6,7 @@ module(
 )
 
 bazel_dep(name = "bazel_utils_bazel", version = "0.1.0")
+bazel_dep(name = "bazel_utils_buf", version = "0.1.0")
 bazel_dep(name = "bazel_utils_core", version = "0.1.0")
 bazel_dep(name = "bazel_utils_go", version = "0.1.0")
 bazel_dep(name = "bazel_utils_md", version = "0.1.0")
@@ -15,6 +16,11 @@ bazel_dep(name = "bazel_utils_rust", version = "0.1.0")
 local_path_override(
     module_name = "bazel_utils_bazel",
     path = "bazel",
+)
+
+local_path_override(
+    module_name = "bazel_utils_buf",
+    path = "buf",
 )
 
 local_path_override(

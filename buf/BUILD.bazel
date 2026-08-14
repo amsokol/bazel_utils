@@ -1,0 +1,35 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+bzl_library(
+    name = "plugin_bzl",
+    srcs = ["plugin.bzl"],
+)
+
+bzl_library(
+    name = "generate_bzl",
+    srcs = ["generate.bzl"],
+)
+
+bzl_library(
+    name = "lint_bzl",
+    srcs = ["lint.bzl"],
+    deps = [
+        ":generate_bzl",
+        "@bazel_skylib//lib:shell",
+        "@bazel_utils_core//internal:runfiles",
+        "@bazel_utils_core//internal:workspace_cd",
+        "@bazel_utils_core//internal:workspace_tool",
+    ],
+)
+
+bzl_library(
+    name = "buf_bzl",
+    srcs = ["buf.bzl"],
+    deps = [
+        ":generate_bzl",
+        ":lint_bzl",
+        ":plugin_bzl",
+    ],
+)

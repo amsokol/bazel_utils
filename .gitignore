@@ -41,6 +41,8 @@ go.work.sum
 /rust/MODULE.bazel.lock
 /markdown/MODULE.bazel.lock
 /bazel/MODULE.bazel.lock
+/buf/MODULE.bazel.lock
+/buf/.bazel/
 
 # Node (markdownlint-cli2 via aspect_rules_js)
 node_modules/
