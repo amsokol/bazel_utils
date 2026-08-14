@@ -1,22 +1,5 @@
 """Convert Bazel paths from the workspace root to go list patterns."""
 
-def go_mod_label(go_mod):
-    """Normalize a go.mod path to a file label (`//go/go.mod` → `//go:go.mod`).
-
-    Args:
-      go_mod: `//:go.mod`, `//go:go.mod`, or `//go/go.mod`.
-
-    Returns:
-      A Bazel file label for the consumer's go.mod.
-    """
-    rest = _require_abs_label(go_mod, "go_mod")
-    if rest in ("go.mod", ":go.mod"):
-        return "//:go.mod"
-    if rest.endswith("/go.mod") and ":" not in rest:
-        pkg = rest[:-len("/go.mod")]
-        return "//{}:go.mod".format(pkg) if pkg else "//:go.mod"
-    return go_mod
-
 def go_list_patterns(dirs):
     """Return go list patterns for `dirs` from the workspace root.
 

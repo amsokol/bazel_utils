@@ -27,6 +27,12 @@ bzl_library(
 )
 
 bzl_library(
+    name = "rust",
+    srcs = ["rust.bzl"],
+    deps = ["//rust:cargo_audit_bzl"],
+)
+
+bzl_library(
     name = "markdown",
     srcs = ["markdown.bzl"],
     deps = ["//markdown:markdown"],

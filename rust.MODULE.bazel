@@ -1,0 +1,16 @@
+"""Rust toolchain crates for tools (cargo-audit)."""
+
+cargo = use_extension(
+    "@rules_rust//crate_universe:extensions.bzl",
+    "crate",
+)
+cargo.from_cargo(
+    name = "bazel_utils_cargo",
+    cargo_lockfile = "//:Cargo.lock",
+    generate_binaries = True,
+    lockfile = "//:cargo-bazel-lock.json",
+    manifests = [
+        "//:Cargo.toml",
+    ],
+)
+use_repo(cargo, "bazel_utils_cargo")

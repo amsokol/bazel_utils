@@ -1,7 +1,7 @@
 """Hermetic ruff from this module's uv lock; workspace check and format targets."""
 
 load("@bazel_lib//lib:copy_file.bzl", "COPY_FILE_TOOLCHAINS", "copy_file_action")
-load("//internal:workspace_tool.bzl", "workspace_test_tags", "workspace_tool_rule")
+load("//internal:workspace_tool.bzl", "manifest_label", "workspace_test_tags", "workspace_tool_rule")
 
 def _ruff_binary_impl(ctx):
     """Copy `bin/ruff` out of the installed ruff wheel (no console_scripts)."""
@@ -73,6 +73,8 @@ _ruff_test = workspace_tool_rule(
     flags_doc = "First ruff argv (check <dirs>).",
     doc = "bazel test: ruff check + format --check against the workspace (no-sandbox).",
     require_flags = True,
+    use_manifest = True,
+    manifest_flag = "--config",
     test = True,
 )
 
@@ -83,22 +85,33 @@ _ruff_format = workspace_tool_rule(
     flags_doc = "ruff argv (format <dirs>).",
     doc = "bazel run: ruff format against the workspace.",
     require_flags = True,
+    use_manifest = True,
+    manifest_flag = "--config",
     executable = True,
     test = False,
 )
 
-def ruff_test(name, workspace = "//:MODULE.bazel", tags = [], dirs = [], flags = [], **kwargs):
+def ruff_test(
+        name,
+        workspace = "//:MODULE.bazel",
+        manifest = "//:pyproject.toml",
+        tags = [],
+        dirs = [],
+        flags = [],
+        **kwargs):
     """Test that runs bazel_utils's ruff after cd to the consumer workspace.
 
-    The binary is pinned in this module's uv.lock. Config stays in the consumer
-    (`pyproject.toml` `[tool.ruff]`).
+    The binary is pinned in this module's uv.lock. Config is the consumer
+    `manifest` (`[tool.ruff]` in pyproject.toml).
 
-    Runs `ruff check <flags> <dirs>` then `ruff format --check <dirs>`.
+    Runs `ruff --config <manifest> check <flags> <dirs>` then
+    `ruff --config <manifest> format --check <dirs>`.
     Defaults tags to `external`, `no-cache`, `no-sandbox`.
 
     Args:
       name: Target name.
       workspace: Repo-root marker file (used when BUILD_WORKSPACE_DIRECTORY is unset).
+      manifest: Consumer pyproject.toml (default `//:pyproject.toml`).
       tags: Extra test tags; merged with the defaults above.
       dirs: Bazel paths from repo root (e.g. `["//python"]` → `python`).
       flags: Extra ruff check flags before `dirs`.
@@ -108,20 +121,29 @@ def ruff_test(name, workspace = "//:MODULE.bazel", tags = [], dirs = [], flags =
     _ruff_test(
         name = name,
         workspace = workspace,
+        manifest = manifest_label(manifest),
         tags = workspace_test_tags(tags),
         flags = ["check"] + flags + paths,
         also = ["format", "--check"] + paths,
         **kwargs
     )
 
-def ruff_format(name, workspace = "//:MODULE.bazel", dirs = [], flags = [], **kwargs):
+def ruff_format(
+        name,
+        workspace = "//:MODULE.bazel",
+        manifest = "//:pyproject.toml",
+        dirs = [],
+        flags = [],
+        **kwargs):
     """Run that formats the consumer workspace with bazel_utils's ruff.
 
-    The binary is pinned in this module's uv.lock. Defaults to `ruff format <dirs>`.
+    The binary is pinned in this module's uv.lock. Defaults to
+    `ruff --config <manifest> format <dirs>`.
 
     Args:
       name: Target name.
       workspace: Repo-root marker file (used when BUILD_WORKSPACE_DIRECTORY is unset).
+      manifest: Consumer pyproject.toml (default `//:pyproject.toml`).
       dirs: Bazel paths from repo root (e.g. `["//python"]` → `python`).
       flags: Extra ruff format flags before `dirs`.
       **kwargs: Forwarded to the run rule (`ruff`, …).
@@ -129,6 +151,7 @@ def ruff_format(name, workspace = "//:MODULE.bazel", dirs = [], flags = [], **kw
     _ruff_format(
         name = name,
         workspace = workspace,
+        manifest = manifest_label(manifest),
         flags = ["format"] + flags + _ruff_paths(dirs),
         **kwargs
     )

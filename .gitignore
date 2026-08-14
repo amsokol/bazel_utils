@@ -41,3 +41,6 @@ node_modules/
 .venv/
 __pycache__/
 .ruff_cache/
+
+# Rust (cargo-audit via crate_universe)
+/target/

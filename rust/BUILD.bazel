@@ -1,0 +1,20 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# cargo-audit from this module's Cargo.lock (crate_universe binary).
+alias(
+    name = "cargo-audit",
+    actual = "@bazel_utils_cargo//:cargo-audit__cargo-audit",
+)
+
+bzl_library(
+    name = "cargo_audit_bzl",
+    srcs = ["cargo_audit.bzl"],
+    deps = [
+        "//internal:runfiles",
+        "//internal:workspace_cd",
+        "//internal:workspace_tool",
+        "@bazel_skylib//lib:shell",
+    ],
+)
