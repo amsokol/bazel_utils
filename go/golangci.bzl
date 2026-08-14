@@ -7,7 +7,7 @@ load("//:go_workspace_tool.bzl", "go_workspace_tool_rule")
 _golangci_test = go_workspace_tool_rule(
     tool_attr = "golangci",
     tool_default = Label("//:golangci-lint"),
-    tool_doc = "golangci-lint binary from bazel_utils go.mod (override to use another).",
+    tool_doc = "Prebuilt golangci-lint from GitHub releases (override to use another).",
     flags_doc = "golangci-lint arguments after `run` and before package dirs.",
     doc = "bazel test: golangci-lint against the workspace (no-sandbox).",
     use_manifest = True,
@@ -27,7 +27,7 @@ def golangci_test(
         **kwargs):
     """Test that runs bazel_utils's golangci-lint after cd to the consumer workspace.
 
-    The linter binary is pinned in this module's go.mod. `go list` still uses the
+    The linter binary is the GitHub release for the exec OS/CPU. `go list` still uses the
     consumer's rules_go SDK so analysis matches the code under test.
 
     Invokes `golangci-lint --config <config> run <flags> <dirs>` from the workspace root.

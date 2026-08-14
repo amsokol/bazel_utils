@@ -1,4 +1,4 @@
-"""Go tools (golangci-lint, govulncheck) from this module's go.mod."""
+"""Go tools: prebuilt golangci-lint; govulncheck from this module's go.mod."""
 
 module(
     name = "bazel_utils_go",
@@ -17,6 +17,7 @@ go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 use_repo(
     go_deps,
-    "com_github_golangci_golangci_lint_v2",
     "org_golang_x_vuln",
 )
+
+include("//:golangci.MODULE.bazel")

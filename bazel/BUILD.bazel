@@ -2,65 +2,17 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//visibility:public"])
 
-config_setting(
-    name = "linux_amd64",
-    constraint_values = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "linux_arm64",
-    constraint_values = [
-        "@platforms//os:linux",
-        "@platforms//cpu:arm64",
-    ],
-)
-
-config_setting(
-    name = "darwin_amd64",
-    constraint_values = [
-        "@platforms//os:macos",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "darwin_arm64",
-    constraint_values = [
-        "@platforms//os:macos",
-        "@platforms//cpu:arm64",
-    ],
-)
-
-config_setting(
-    name = "windows_amd64",
-    constraint_values = [
-        "@platforms//os:windows",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "windows_arm64",
-    constraint_values = [
-        "@platforms//os:windows",
-        "@platforms//cpu:arm64",
-    ],
-)
-
 # Prebuilt GitHub release; select is the exec platform (host that runs the tool).
 alias(
     name = "buildifier",
     actual = select(
         {
-            ":linux_amd64": "@buildifier_linux_amd64//file",
-            ":linux_arm64": "@buildifier_linux_arm64//file",
-            ":darwin_amd64": "@buildifier_darwin_amd64//file",
-            ":darwin_arm64": "@buildifier_darwin_arm64//file",
-            ":windows_amd64": "@buildifier_windows_amd64//file",
-            ":windows_arm64": "@buildifier_windows_arm64//file",
+            "@bazel_utils_core//:linux_amd64": "@buildifier_linux_amd64//file",
+            "@bazel_utils_core//:linux_arm64": "@buildifier_linux_arm64//file",
+            "@bazel_utils_core//:darwin_amd64": "@buildifier_darwin_amd64//file",
+            "@bazel_utils_core//:darwin_arm64": "@buildifier_darwin_arm64//file",
+            "@bazel_utils_core//:windows_amd64": "@buildifier_windows_amd64//file",
+            "@bazel_utils_core//:windows_arm64": "@buildifier_windows_arm64//file",
         },
         no_match_error = "No prebuilt buildifier for this OS/CPU",
     ),

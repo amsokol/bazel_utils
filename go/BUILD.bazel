@@ -1,11 +1,23 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-# golangci-lint from this module's go.mod (gazelle-generated binary in go_deps).
-alias(
+# Prebuilt GitHub release; select is the exec platform (host that runs the tool).
+native_binary(
     name = "golangci-lint",
-    actual = "@com_github_golangci_golangci_lint_v2//cmd/golangci-lint:golangci-lint",
+    src = select(
+        {
+            "@bazel_utils_core//:linux_amd64": "@golangci_lint_linux_amd64//:golangci-lint",
+            "@bazel_utils_core//:linux_arm64": "@golangci_lint_linux_arm64//:golangci-lint",
+            "@bazel_utils_core//:darwin_amd64": "@golangci_lint_darwin_amd64//:golangci-lint",
+            "@bazel_utils_core//:darwin_arm64": "@golangci_lint_darwin_arm64//:golangci-lint",
+            "@bazel_utils_core//:windows_amd64": "@golangci_lint_windows_amd64//:golangci-lint.exe",
+            "@bazel_utils_core//:windows_arm64": "@golangci_lint_windows_arm64//:golangci-lint.exe",
+        },
+        no_match_error = "No prebuilt golangci-lint for this OS/CPU",
+    ),
+    out = "golangci-lint.bin",
 )
 
 # govulncheck from this module's go.mod (gazelle-generated binary in go_deps).
