@@ -1,4 +1,4 @@
-"""cargo-audit from this module's Cargo.lock."""
+"""Prebuilt cargo-audit from GitHub; cargo -V from the consumer rules_rust toolchain."""
 
 module(
     name = "bazel_utils_rust",
@@ -9,17 +9,4 @@ bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "bazel_utils_core", version = "0.1.0")
 bazel_dep(name = "rules_rust", version = "0.73.0")
 
-cargo = use_extension(
-    "@rules_rust//crate_universe:extensions.bzl",
-    "crate",
-)
-cargo.from_cargo(
-    name = "bazel_utils_cargo",
-    cargo_lockfile = "//:Cargo.lock",
-    generate_binaries = True,
-    lockfile = "//:cargo-bazel-lock.json",
-    manifests = [
-        "//:Cargo.toml",
-    ],
-)
-use_repo(cargo, "bazel_utils_cargo")
+include("//:cargo_audit.MODULE.bazel")

@@ -74,7 +74,7 @@ _cargo_audit_test = rule(
             default = Label("//:cargo-audit"),
             executable = True,
             cfg = "exec",
-            doc = "cargo-audit binary from bazel_utils Cargo.lock (override to use another).",
+            doc = "Prebuilt cargo-audit from GitHub releases (override to use another).",
         ),
         "flags": attr.string_list(
             doc = "cargo-audit arguments after `audit --file <lock>` (e.g. --color never).",
@@ -109,8 +109,8 @@ def cargo_audit_test(
         **kwargs):
     """Test that runs bazel_utils's cargo-audit against the consumer lockfile.
 
-    The scanner binary is pinned in this module's Cargo.lock. `cargo -V` still
-    uses the consumer's rules_rust toolchain. Defaults `local = True` and tags
+    The scanner binary is the GitHub release for the exec OS/CPU. `cargo -V`
+    still uses the consumer's rules_rust toolchain. Defaults `local = True` and tags
     `external`, `no-cache`, `no-sandbox`, `requires-network`.
 
     Args:

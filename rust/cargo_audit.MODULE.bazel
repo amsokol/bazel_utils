@@ -1,0 +1,74 @@
+"""Prebuilt cargo-audit (GitHub release). Fetched for the exec OS/CPU; not stored in git.
+
+Upstream has no Windows ARM64 asset (rustsec/rustsec cargo-audit/v0.22.2).
+"""
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+_CARGO_AUDIT = "0.22.2"
+
+_CARGO_AUDIT_URL = "https://github.com/rustsec/rustsec/releases/download/cargo-audit/v{version}/cargo-audit-{triple}-v{version}.{ext}"
+
+_UNIX_BUILD = """exports_files(["cargo-audit"], visibility = ["//visibility:public"])"""
+
+_WIN_BUILD = """exports_files(["cargo-audit.exe"], visibility = ["//visibility:public"])"""
+
+http_archive(
+    name = "cargo_audit_linux_amd64",
+    build_file_content = _UNIX_BUILD,
+    sha256 = "ab28a1bdb54db4d5d8ad5981cf1f959410370b3d28250dbd35f6a44248620e39",
+    strip_prefix = "cargo-audit-x86_64-unknown-linux-gnu-v{}".format(_CARGO_AUDIT),
+    urls = [_CARGO_AUDIT_URL.format(
+        ext = "tgz",
+        triple = "x86_64-unknown-linux-gnu",
+        version = _CARGO_AUDIT,
+    )],
+)
+
+http_archive(
+    name = "cargo_audit_linux_arm64",
+    build_file_content = _UNIX_BUILD,
+    sha256 = "c6603814ddaa45e51263dafd31c0ac98808f688d26f7395804f9670b0fd599dd",
+    strip_prefix = "cargo-audit-aarch64-unknown-linux-gnu-v{}".format(_CARGO_AUDIT),
+    urls = [_CARGO_AUDIT_URL.format(
+        ext = "tgz",
+        triple = "aarch64-unknown-linux-gnu",
+        version = _CARGO_AUDIT,
+    )],
+)
+
+http_archive(
+    name = "cargo_audit_darwin_amd64",
+    build_file_content = _UNIX_BUILD,
+    sha256 = "847831323de932155b226ab60ee4a180e13e5d007a019f0d4b7b4d89a6de2ab2",
+    strip_prefix = "cargo-audit-x86_64-apple-darwin-v{}".format(_CARGO_AUDIT),
+    urls = [_CARGO_AUDIT_URL.format(
+        ext = "tgz",
+        triple = "x86_64-apple-darwin",
+        version = _CARGO_AUDIT,
+    )],
+)
+
+http_archive(
+    name = "cargo_audit_darwin_arm64",
+    build_file_content = _UNIX_BUILD,
+    sha256 = "ec7ca4263769593df4d909be85b94a6b79efa2897be5d2bb8ebd516e823175af",
+    strip_prefix = "cargo-audit-aarch64-apple-darwin-v{}".format(_CARGO_AUDIT),
+    urls = [_CARGO_AUDIT_URL.format(
+        ext = "tgz",
+        triple = "aarch64-apple-darwin",
+        version = _CARGO_AUDIT,
+    )],
+)
+
+http_archive(
+    name = "cargo_audit_windows_amd64",
+    build_file_content = _WIN_BUILD,
+    sha256 = "0a7316540862c13d954f648917ceacca593747baed6eec180fafa590be2710ab",
+    strip_prefix = "cargo-audit-x86_64-pc-windows-msvc-v{}".format(_CARGO_AUDIT),
+    urls = [_CARGO_AUDIT_URL.format(
+        ext = "zip",
+        triple = "x86_64-pc-windows-msvc",
+        version = _CARGO_AUDIT,
+    )],
+)

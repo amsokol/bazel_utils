@@ -1,6 +1,6 @@
 load("@aspect_rules_py//uv/unstable:defs.bzl", "py_console_script_binary")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("//:ruff.bzl", "ruff_binary")
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -9,9 +9,21 @@ exports_files([
     "uv.lock",
 ])
 
-ruff_binary(
+# Prebuilt GitHub release; select is the exec platform (host that runs the tool).
+native_binary(
     name = "ruff",
-    pkg = "@bazel_utils_pypi//ruff",
+    src = select(
+        {
+            "@bazel_utils_core//:linux_amd64": "@ruff_linux_amd64//:ruff",
+            "@bazel_utils_core//:linux_arm64": "@ruff_linux_arm64//:ruff",
+            "@bazel_utils_core//:darwin_amd64": "@ruff_darwin_amd64//:ruff",
+            "@bazel_utils_core//:darwin_arm64": "@ruff_darwin_arm64//:ruff",
+            "@bazel_utils_core//:windows_amd64": "@ruff_windows_amd64//:ruff.exe",
+            "@bazel_utils_core//:windows_arm64": "@ruff_windows_arm64//:ruff.exe",
+        },
+        no_match_error = "No prebuilt ruff for this OS/CPU",
+    ),
+    out = "ruff.bin",
 )
 
 # pip-audit from this module's uv.lock [dependency-groups] `dev`.
@@ -27,7 +39,6 @@ bzl_library(
     name = "ruff_bzl",
     srcs = ["ruff.bzl"],
     deps = [
-        "@bazel_lib//lib:copy_file",
         "@bazel_utils_core//internal:labels",
         "@bazel_utils_core//internal:workspace_tool",
     ],

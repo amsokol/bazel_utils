@@ -1,16 +1,23 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files([
-    "Cargo.lock",
-    "Cargo.toml",
-])
-
-# cargo-audit from this module's Cargo.lock (crate_universe binary).
-alias(
+# Prebuilt GitHub release; select is the exec platform (host that runs the tool).
+# Upstream does not publish a Windows ARM64 binary.
+native_binary(
     name = "cargo-audit",
-    actual = "@bazel_utils_cargo//:cargo-audit__cargo-audit",
+    src = select(
+        {
+            "@bazel_utils_core//:linux_amd64": "@cargo_audit_linux_amd64//:cargo-audit",
+            "@bazel_utils_core//:linux_arm64": "@cargo_audit_linux_arm64//:cargo-audit",
+            "@bazel_utils_core//:darwin_amd64": "@cargo_audit_darwin_amd64//:cargo-audit",
+            "@bazel_utils_core//:darwin_arm64": "@cargo_audit_darwin_arm64//:cargo-audit",
+            "@bazel_utils_core//:windows_amd64": "@cargo_audit_windows_amd64//:cargo-audit.exe",
+        },
+        no_match_error = "No prebuilt cargo-audit for this OS/CPU",
+    ),
+    out = "cargo-audit.bin",
 )
 
 bzl_library(

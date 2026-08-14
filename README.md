@@ -13,7 +13,7 @@ Starlark helpers for Bazel workspaces, split into modules in this repo:
 
 Depend only on the language modules you need. `bazel_utils_core` comes in transitively. The root `bazel_utils` module is this repo's aggregator (dogfood tests), not a consumer dependency.
 
-Go binaries: **golangci-lint** is pinned in `go/golangci.MODULE.bazel` (GitHub release `http_archive`, selected by exec OS/CPU); **govulncheck** is pinned in `go/go.mod`. Prebuilt **buildifier** is pinned in `bazel/buildifier.MODULE.bazel` (GitHub release `http_file`, selected by exec OS/CPU). `markdownlint-cli2` is pinned in `markdown/` pnpm catalog. Ruff and `pip-audit` are pinned in `python/uv.lock`. `cargo-audit` is pinned in `rust/Cargo.lock` (crate_universe lockfile `rust/cargo-bazel-lock.json`). The consumer does not need those tools in their own module. `go list` still uses the consumer's Go SDK so analysis matches the code under test. Markdown config (`.markdownlint-cli2.yaml`) and Ruff config (`pyproject.toml` `[tool.ruff]`) stay in the consumer.
+Go binaries: **golangci-lint** is pinned in `go/golangci.MODULE.bazel` (GitHub release `http_archive`, selected by exec OS/CPU); **govulncheck** is pinned in `go/go.mod`. Prebuilt **buildifier** is pinned in `bazel/buildifier.MODULE.bazel` (GitHub release `http_file`, selected by exec OS/CPU). Prebuilt **ruff** is pinned in `python/ruff.MODULE.bazel` (GitHub release `http_archive`, selected by exec OS/CPU). Prebuilt **cargo-audit** is pinned in `rust/cargo_audit.MODULE.bazel` (GitHub release `http_archive`, selected by exec OS/CPU; no Windows ARM64 build upstream). `markdownlint-cli2` is pinned in `markdown/` pnpm catalog. `pip-audit` is pinned in `python/uv.lock`. The consumer does not need those tools in their own module. `go list` still uses the consumer's Go SDK so analysis matches the code under test. `cargo -V` still uses the consumer's rules_rust toolchain. Markdown config (`.markdownlint-cli2.yaml`) and Ruff config (`pyproject.toml` `[tool.ruff]`) stay in the consumer.
 
 ## Use
 
@@ -132,10 +132,4 @@ Language trees are separate Bazel modules (listed in `.bazelignore`). From this 
 bazel test //:lint
 bazel test //:markdown
 bazel test @bazel_utils_core//internal:workspace_rel_dir_test @bazel_utils_core//internal:workspace_file_label_test
-```
-
-After changing `rust/Cargo.toml` / `Cargo.lock`, regenerate the crate_universe lock from this repo root:
-
-```bash
-bazel build --repo_env=CARGO_BAZEL_REPIN=1 @bazel_utils_rust//:cargo-audit
 ```

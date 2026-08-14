@@ -1,4 +1,4 @@
-"""Ruff and pip-audit from this module's uv.lock."""
+"""pip-audit from this module's uv.lock; prebuilt ruff from GitHub."""
 
 module(
     name = "bazel_utils_python",
@@ -6,7 +6,6 @@ module(
 )
 
 bazel_dep(name = "aspect_rules_py", version = "1.11.7")
-bazel_dep(name = "bazel_lib", version = "3.7.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "bazel_utils_core", version = "0.1.0")
 bazel_dep(name = "rules_python", version = "2.3.0")
@@ -34,3 +33,5 @@ uv.project(
     pyproject = "//:pyproject.toml",
 )
 use_repo(uv, "bazel_utils_pypi")
+
+include("//:ruff.MODULE.bazel")
