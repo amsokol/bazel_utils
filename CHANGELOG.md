@@ -8,6 +8,16 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-16
+
+### Removed
+
+- `bazel_utils_buf`: `buf.plugins` module-extension tag, `@buf_plugins`, and shipped plugin sources (`buf/plugins/…`). Build local codegen plugins in the consumer and pass them to `buf_generate(plugins = …)` via `buf_plugin`.
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.0` (lockstep).
+
 ## [0.1.1] - 2026-08-14
 
 ### Changed
@@ -29,6 +39,7 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/amsokol/bazel_utils/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/amsokol/bazel_utils/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amsokol/bazel_utils/releases/tag/v0.1.0

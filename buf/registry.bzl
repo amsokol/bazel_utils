@@ -1,4 +1,4 @@
-"""Pinned Buf CLI hashes and local codegen plugins. Unknown name/version → fail().
+"""Pinned Buf CLI hashes. Unknown version → fail().
 
 CLI versions are selected by the consumer's `buf.toolchains(version)`. This file
 is the fetch catalog (GitHub asset names + sha256), not the pin.
@@ -35,17 +35,6 @@ CLI = {
     },
 }
 
-# Local plugins compiled in this module. Each version is
-# plugins/<name>/<version>/ (Cargo + crate_universe).
-PLUGINS = {
-    "protoc-gen-protovalidate-buffa": {
-        "v0.6.0": {
-            "kind": "source",
-            "target": "//plugins/protoc-gen-protovalidate-buffa/v0.6.0:protoc-gen-protovalidate-buffa",
-        },
-    },
-}
-
 def cli_platforms(version):
     """Return the platform map for a CLI version, or fail.
 
@@ -62,28 +51,3 @@ def cli_platforms(version):
             v = version,
         ))
     return platforms
-
-def plugin_spec(name, version):
-    """Return the registry entry for a local plugin, or fail.
-
-    Args:
-      name: Plugin binary name (e.g. `protoc-gen-protovalidate-buffa`).
-      version: Plugin version tag (e.g. `v0.6.0`).
-
-    Returns:
-      Registry dict for that name+version (`kind`, `target`, …).
-    """
-    versions = PLUGINS.get(name)
-    if not versions:
-        fail("buf.plugins: unknown plugin {n}; known: {known}".format(
-            known = ", ".join(sorted(PLUGINS.keys())),
-            n = name,
-        ))
-    spec = versions.get(version)
-    if not spec:
-        fail("buf.plugins: unknown {n} version {v}; known: {known}".format(
-            known = ", ".join(sorted(versions.keys())),
-            n = name,
-            v = version,
-        ))
-    return spec

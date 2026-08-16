@@ -1,12 +1,9 @@
 """Hermetic buf generate and staged buf_module.
 
 Buf CLI is `@buf//:buf` from `buf.toolchains(version)` (cannot use go_binary — bufprivateusage).
-Hub plugins from `buf.plugins()` (`@buf_plugins`) and consumer `plugins`
-(`buf_plugin` or any executable) are put on PATH. `remote:` plugins and
-`buf.yaml` `deps` are fetched from the BSR (needs network).
+Consumer `plugins` (`buf_plugin` or any executable) are put on PATH. `remote:`
+plugins and `buf.yaml` `deps` are fetched from the BSR (needs network).
 """
-
-load("@buf_plugins//:plugins.bzl", "BUF_PLUGIN_LABELS")
 
 BufGeneratedInfo = provider(
     doc = "Generated files from buf_generate.",
@@ -40,8 +37,8 @@ def _module_directory(ctx):
     return ctx.attr.module[BufModuleInfo].directory
 
 def _plugin_targets(ctx):
-    """Hub plugins, then consumer `plugins` (same PATH name: later wins)."""
-    return list(getattr(ctx.attr, "_plugins", [])) + list(getattr(ctx.attr, "plugins", []))
+    """Consumer `plugins` (target name is the PATH name)."""
+    return list(ctx.attr.plugins)
 
 def _plugin_path_lines(ctx):
     """Write PATH wrappers that exec Bazel-built local plugins.
@@ -192,12 +189,10 @@ buf_generate = rule(
     implementation = _buf_generate_impl,
     doc = """`buf generate` over a buf_module.
 
-Hub plugins from `buf.plugins()` and `plugins` (typically `buf_plugin`)
-are put on PATH. Target name is the PATH name (`local:` in the template).
-A consumer plugin with the same name as a hub plugin overrides it.
-`remote:` plugins in the template are fetched from the BSR (the action
-requires network). `buf dep update` resolves `buf.yaml` `deps` into the
-action workdir.
+`plugins` (typically `buf_plugin`) are put on PATH. Target name is the
+PATH name (`local:` in the template). `remote:` plugins in the template
+are fetched from the BSR (the action requires network). `buf dep update`
+resolves `buf.yaml` `deps` into the action workdir.
 
 The template is passed to `buf generate --template` as-is (`out`,
 `include_imports`, `include_wkt`, `inputs`). This rule does not parse it.
@@ -225,11 +220,6 @@ for write_source_files.
             cfg = "exec",
             allow_files = True,
             doc = "Consumer-built local plugins. Target name is the PATH name (`local:` in the template). Wrap with buf_plugin when the binary name differs.",
-        ),
-        "_plugins": attr.label_list(
-            default = BUF_PLUGIN_LABELS,
-            cfg = "exec",
-            allow_files = True,
         ),
         "buf": _BUF_ATTR,
     },

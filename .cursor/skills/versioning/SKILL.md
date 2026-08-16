@@ -28,9 +28,9 @@ If **major > 0** (standard SemVer):
 
 Do not skip numbers. Do not jump to `1.0.0` unless the user explicitly wants a stable public API.
 
-**Breaking** means consumer-visible Starlark: renamed/removed rules or attrs, required new attrs, provider changes, `buf.toolchains` / `buf.plugins` contract. Pinned tool upgrades are a patch (0.x) or minor (≥1.0) unless they force a breaking API/output change.
+**Breaking** means consumer-visible Starlark: renamed/removed rules or attrs, required new attrs, provider changes, `buf.toolchains` contract. Pinned tool upgrades are a patch (0.x) or minor (≥1.0) unless they force a breaking API/output change.
 
-Tool pins (Buf CLI, ruff, plugins like `protoc-gen-protovalidate-buffa`) are **not** this version — see `update-pinned-tools` in the consumer repo.
+Tool pins (Buf CLI, ruff, and consumer-built plugins like `protoc-gen-protovalidate-buffa`) are **not** this version — see `update-pinned-tools` in the consumer repo.
 
 ## Lockstep files
 

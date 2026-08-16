@@ -4,7 +4,7 @@ Starlark helpers for Bazel workspaces. Each language is a **separate Bazel modul
 
 `bazel_utils_core` is pulled in transitively. The root module `bazel_utils` in this repository is an aggregator for development, not a consumer dependency.
 
-Current module version: **0.1.1**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current module version: **0.2.0**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 | Module | Load | Public API |
 | --- | --- | --- |
@@ -19,16 +19,16 @@ Workspace-cd tests (`*_test` macros that `cd` to the consumer repo) default `loc
 
 Pass `buildifier` / `golangci` / `govulncheck` / `buf` / `ruff` / `pip_audit` / `cargo_audit` / `markdownlint` only to replace this module's binary.
 
-Modules live in subdirectories of [amsokol/bazel_utils](https://github.com/amsokol/bazel_utils.git). Pin each language module with `git_override` at tag `v0.1.1` and `strip_prefix` matching that directory. Language modules depend on `bazel_utils_core` (no public macros, not on the Bazel Central Registry), so add this once:
+Modules live in subdirectories of [amsokol/bazel_utils](https://github.com/amsokol/bazel_utils.git). Pin each language module with `git_override` at tag `v0.2.0` and `strip_prefix` matching that directory. Language modules depend on `bazel_utils_core` (no public macros, not on the Bazel Central Registry), so add this once:
 
 ```starlark
-bazel_dep(name = "bazel_utils_core", version = "0.1.1")
+bazel_dep(name = "bazel_utils_core", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_core",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "core",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 
@@ -42,13 +42,13 @@ Prebuilt [buildifier](https://github.com/bazelbuild/buildtools) (GitHub release,
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_bazel", version = "0.1.1")
+bazel_dep(name = "bazel_utils_bazel", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_bazel",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "bazel",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 
@@ -98,7 +98,7 @@ buildifier_format(
 
 ## bazel_utils_buf
 
-Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and optional local codegen plugins.
+Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and consumer-built local codegen plugins (`buf_plugin`).
 
 The generate/lint template (`buf.gen.yaml`) and `buf.yaml` `deps` are the source of truth. `buf_generate` passes the template to `buf generate --template` as-is (`out`, `include_imports`, `include_wkt`, `inputs`).
 
@@ -115,23 +115,21 @@ The action sandbox does not inherit the user shell. Without this, buf runs anony
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_buf", version = "0.1.1")
+bazel_dep(name = "bazel_utils_buf", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_buf",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "buf",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 
 buf = use_extension("@bazel_utils_buf//:extensions.bzl", "buf")
 buf.toolchains(version = "v1.72.0")
-# Optional: pin a local plugin shipped in this module.
-buf.plugins(name = "protoc-gen-protovalidate-buffa", version = "v0.6.0")
-use_repo(buf, "buf", "buf_plugins")
+use_repo(buf, "buf")
 ```
 
-`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). `buf.plugins` may be repeated; omit it if you only use `remote:` plugins.
+`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). Build local plugins in the consumer and pass them to `buf_generate` with `buf_plugin`.
 
 ```starlark
 # api/v1/BUILD.bazel
@@ -145,21 +143,6 @@ Module-extension tag. At most one per module; the root module's tag wins.
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `version` | `string` | yes | — | Buf CLI release tag (must exist in this module's `registry.bzl`). |
-
-#### `buf.plugins`
-
-Module-extension tag. Pins a local plugin (`buf/plugins/<name>/<version>/`) onto `@buf_plugins` and PATH for `buf_generate`.
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `name` | `string` | yes | — | Plugin name (`local:` in the generate template). |
-| `version` | `string` | yes | — | Version directory under `buf/plugins/<name>/`. |
-
-Shipped plugins (`buf.plugins` `name` / `version` must match a row):
-
-| Name | Description | Version | Source | Build files |
-| --- | --- | --- | --- | --- |
-| `protoc-gen-protovalidate-buffa` | Static protovalidate `Validate` impls for buffa (Rust) from `(buf.validate.*)` | `v0.6.0` | [mathematic-inc/protovalidate-buffa](https://github.com/mathematic-inc/protovalidate-buffa) | [`buf/plugins/protoc-gen-protovalidate-buffa/v0.6.0/`](buf/plugins/protoc-gen-protovalidate-buffa/v0.6.0/) |
 
 ### `buf_module`
 
@@ -186,14 +169,14 @@ buf_module(
 
 ### `buf_generate`
 
-`buf generate` over a `buf_module`. Hub plugins from `buf.plugins()` and `plugins` are on PATH. Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated.
+`buf generate` over a `buf_module`. `plugins` (typically `buf_plugin`) are on PATH. Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `name` | `string` | yes | — | Target name. |
 | `module` | `label` (`buf_module`) | yes | — | Module to generate from. |
 | `template` | `label` | yes | — | `buf.gen.yaml` passed to `buf generate --template`. |
-| `plugins` | `label_list` (executable) | no | `[]` | Consumer-built local plugins (typically `buf_plugin`). Hub plugins from `buf.plugins()` are always included; a same-name entry overrides. |
+| `plugins` | `label_list` (executable) | no | `[]` | Consumer-built local plugins (typically `buf_plugin`). Target **name** is the PATH name (`local:` in the template). |
 | `buf` | `label` | no | `@buf//:buf` | Override the pinned Buf CLI. |
 | `visibility` | `string_list` | no | package default | Target visibility. |
 
@@ -205,13 +188,9 @@ buf_generate(
 )
 ```
 
-A same-name entry in `plugins` overrides a hub plugin. Target **name** is the PATH name (`local:` in the template).
-
 ### `buf_plugin`
 
 Wraps an executable so the target **name** is the PATH name `buf` looks up. Use it when the binary Bazel built is not already named like `protoc-gen-…` (crate_universe often emits `*_bin`). Pass the target to `buf_generate(plugins = …)`.
-
-`buf.plugins(name, version)` pins a plugin **shipped in this module**. `buf_plugin` is for a binary **you** build.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -291,13 +270,13 @@ Prebuilt [golangci-lint](https://github.com/golangci/golangci-lint) (GitHub rele
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_go", version = "0.1.1")
+bazel_dep(name = "bazel_utils_go", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_go",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "go",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 
@@ -365,13 +344,13 @@ Prebuilt [ruff](https://github.com/astral-sh/ruff) (GitHub release) and [pip-aud
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_python", version = "0.1.1")
+bazel_dep(name = "bazel_utils_python", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_python",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "python",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 
@@ -455,13 +434,13 @@ Prebuilt [cargo-audit](https://github.com/rustsec/rustsec/tree/main/cargo-audit)
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_rust", version = "0.1.1")
+bazel_dep(name = "bazel_utils_rust", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_rust",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "rust",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 
@@ -502,13 +481,13 @@ cargo_audit_test(
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_md", version = "0.1.1")
+bazel_dep(name = "bazel_utils_md", version = "0.2.0")
 
 git_override(
     module_name = "bazel_utils_md",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "markdown",
-    tag = "v0.1.1",
+    tag = "v0.2.0",
 )
 ```
 

@@ -2,11 +2,11 @@
 
 module(
     name = "bazel_utils_rust",
-    version = "0.1.1",
+    version = "0.2.0",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
-bazel_dep(name = "bazel_utils_core", version = "0.1.1")
+bazel_dep(name = "bazel_utils_core", version = "0.2.0")
 bazel_dep(name = "rules_rust", version = "0.73.0")
 
 include("//:cargo_audit.MODULE.bazel")
