@@ -8,6 +8,16 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-17
+
+### Added
+
+- `bazel_utils_bazel`: `exclude_patterns` on `buildifier_test` and `buildifier_format` (`find … ! -path`, same shape as buildifier-prebuilt). Empty keeps `buildifier -r .`.
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.1` (lockstep).
+
 ## [0.2.0] - 2026-08-16
 
 ### Removed
@@ -39,7 +49,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/amsokol/bazel_utils/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/amsokol/bazel_utils/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/amsokol/bazel_utils/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amsokol/bazel_utils/releases/tag/v0.1.0

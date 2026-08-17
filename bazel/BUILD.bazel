@@ -21,7 +21,10 @@ alias(
 bzl_library(
     name = "buildifier_bzl",
     srcs = ["buildifier.bzl"],
-    deps = ["@bazel_utils_core//internal:workspace_tool"],
+    deps = [
+        "@bazel_skylib//lib:shell",
+        "@bazel_utils_core//internal:workspace_tool",
+    ],
 )
 
 bzl_library(
