@@ -3,8 +3,7 @@ load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-# Prebuilt GitHub release; select is the exec platform (host that runs the tool).
-# Upstream does not publish a Windows ARM64 binary.
+# Prebuilt binary; select is the exec platform (host that runs the tool).
 native_binary(
     name = "cargo-audit",
     src = select(
@@ -14,6 +13,7 @@ native_binary(
             "@bazel_utils_core//:darwin_amd64": "@cargo_audit_darwin_amd64//:cargo-audit",
             "@bazel_utils_core//:darwin_arm64": "@cargo_audit_darwin_arm64//:cargo-audit",
             "@bazel_utils_core//:windows_amd64": "@cargo_audit_windows_amd64//:cargo-audit.exe",
+            "@bazel_utils_core//:windows_arm64": "@cargo_audit_windows_arm64//:cargo-audit.exe",
         },
         no_match_error = "No prebuilt cargo-audit for this OS/CPU",
     ),

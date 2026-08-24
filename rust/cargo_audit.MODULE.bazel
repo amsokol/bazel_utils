@@ -1,6 +1,8 @@
-"""Prebuilt cargo-audit (GitHub release). Fetched for the exec OS/CPU; not stored in git.
+"""Prebuilt cargo-audit. Fetched for the exec OS/CPU; not stored in git.
 
-Upstream has no Windows ARM64 asset (rustsec/rustsec cargo-audit/v0.22.2).
+RustSec GitHub releases cover Unix and Windows AMD64. Windows ARM64 uses the
+cargo-quickinstall build of the same cargo-audit version (rustsec does not
+publish that triple).
 """
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -69,6 +71,17 @@ http_archive(
     urls = [_CARGO_AUDIT_URL.format(
         ext = "zip",
         triple = "x86_64-pc-windows-msvc",
+        version = _CARGO_AUDIT,
+    )],
+)
+
+# rustsec/rustsec cargo-audit/v0.22.2 has no aarch64-pc-windows-msvc zip.
+# cargo-quickinstall ships cargo-audit.exe at the archive root (no strip_prefix).
+http_archive(
+    name = "cargo_audit_windows_arm64",
+    build_file_content = _WIN_BUILD,
+    sha256 = "f7335bb96d3aa89a255469c6b856b05f91afdfc61d9c1291d6b08ce447b7a323",
+    urls = ["https://github.com/cargo-bins/cargo-quickinstall/releases/download/cargo-audit-{version}/cargo-audit-{version}-aarch64-pc-windows-msvc.tar.gz".format(
         version = _CARGO_AUDIT,
     )],
 )
