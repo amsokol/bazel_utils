@@ -8,6 +8,18 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-24
+
+### Fixed
+
+- `bazel_utils_buf`: `buf_generate` installs local plugins as `name.exe` on
+  Windows so native `buf.exe` can find them. Go `LookPath` only searches
+  PATHEXT; the Unix extensionless bash wrappers were "not found in %PATH%".
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.3` (lockstep).
+
 ## [0.2.2] - 2026-08-24
 
 ### Added
@@ -60,7 +72,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.2...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/amsokol/bazel_utils/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/amsokol/bazel_utils/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/amsokol/bazel_utils/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/amsokol/bazel_utils/compare/v0.1.1...v0.2.0

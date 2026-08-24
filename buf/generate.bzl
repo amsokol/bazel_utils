@@ -45,26 +45,48 @@ def _plugin_path_lines(ctx):
 
     Wrappers live in `$PLUGIN_BIN`, which `_workdir_lines` places next to
     (not inside) `$WORKDIR` so `find` during generate does not see them.
+
+    Unix: extensionless bash wrapper named after the target (buf LookPath).
+    Windows: `buf.exe` is a native binary; Go LookPath only finds PATHEXT
+    (`.exe`, `.bat`, …), so an extensionless script is "not found in %PATH%".
+    Copy the real plugin as `name.exe` when it is already an `.exe` (stdin
+    stays on the binary). Otherwise write a `.bat` that execs the real path.
     """
-    lines = []
+    lines = [
+        "install_plugin_on_path() {",
+        '  local name="$1"',
+        '  local plugin="$2"',
+        # Quote $@ so it is expanded when buf invokes the wrapper, not when
+        # this function writes the wrapper (unquoted EOF would bake in "").
+        '  cat > "$PLUGIN_BIN/$name" <<EOF',
+        "#!/usr/bin/env bash",
+        'exec "$plugin" "\\$@"',
+        "EOF",
+        '  chmod +x "$PLUGIN_BIN/$name"',
+        '  if [[ "$plugin" == *.exe ]]; then',
+        '    cp -f "$plugin" "$PLUGIN_BIN/${name}.exe"',
+        '  elif command -v cygpath >/dev/null 2>&1 || uname -s 2>/dev/null | grep -qiE "mingw|msys|cygwin"; then',
+        '    local win="$plugin"',
+        "    if command -v cygpath >/dev/null 2>&1; then",
+        '      win="$(cygpath -w "$plugin")"',
+        "    fi",
+        "    printf '@echo off\\r\\n\"%s\" %%*\\r\\n' \"$win\" > \"$PLUGIN_BIN/${name}.bat\"",
+        "  fi",
+        "}",
+    ]
     for i, target in enumerate(_plugin_targets(ctx)):
         exe = target[DefaultInfo].files_to_run.executable
         if not exe:
             fail("{}: plugin {} has no executable".format(ctx.label, target.label))
         name = target.label.name
         lines.append('PLUGIN_{}="$(realpath "{}")"'.format(i, exe.path))
-
-        # Quote $@ so it is expanded when buf invokes the wrapper, not when
-        # this action writes the wrapper (unquoted EOF would bake in "").
-        lines.append("\n".join([
-            'cat > "$PLUGIN_BIN/{}" <<EOF'.format(name),
-            "#!/usr/bin/env bash",
-            'exec "$PLUGIN_{}" "\\$@"'.format(i),
-            "EOF",
-            'chmod +x "$PLUGIN_BIN/{}"'.format(name),
-        ]))
+        lines.append('install_plugin_on_path "{}" "$PLUGIN_{}"'.format(name, i))
     lines.append('export PATH="$PLUGIN_BIN:$PATH"')
     lines.extend([
+        # Native buf.exe does not search MSYS `/c/...` PATH entries.
+        "if command -v cygpath >/dev/null 2>&1; then",
+        '  export PATH="$(cygpath -w "$PLUGIN_BIN");$PATH"',
+        "fi",
         'export HOME="$HOME_DIR"',
         'export BUF_CACHE_DIR="$BUF_CACHE_DIR"',
     ])
