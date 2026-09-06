@@ -8,6 +8,22 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-09-06
+
+### Changed
+
+- Bumped the Go toolchain pin from 1.26.6 to 1.27.1 (`bazel_utils_go`).
+- Bumped golangci-lint from 2.12.2 to 2.13.2 (`bazel_utils_go`).
+- Bumped gazelle to 0.53.0 and rules_go to 0.63.0 (`bazel_utils_go`).
+- Bumped protobuf from 35.1 to 36.1.bcr.1 (`bazel_utils_buf`).
+- Bumped ruff from 0.16.3 to 0.16.6 and Python `build` from 1.5.0 to 1.6.0
+  (`bazel_utils_python`).
+- Bumped rules_python to 2.3.2 and aspect_rules_py to 1.12.1
+  (`bazel_utils_python`).
+- Bumped rules_rust to 0.74.0 (`bazel_utils_rust`).
+- Bumped aspect_rules_js to 3.4.1 (`bazel_utils_md`).
+- Raised every language module and the aggregator to `0.2.4` (lockstep).
+
 ## [0.2.3] - 2026-08-24
 
 ### Fixed
@@ -72,7 +88,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/amsokol/bazel_utils/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/amsokol/bazel_utils/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/amsokol/bazel_utils/compare/v0.2.0...v0.2.1

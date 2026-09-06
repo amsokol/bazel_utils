@@ -2,7 +2,7 @@
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-_GOLANGCI = "2.12.2"
+_GOLANGCI = "2.13.2"
 
 _GOLANGCI_URL = "https://github.com/golangci/golangci-lint/releases/download/v{version}/golangci-lint-{version}-{platform}"
 
@@ -13,7 +13,7 @@ _WIN_BUILD = """exports_files(["golangci-lint.exe"], visibility = ["//visibility
 http_archive(
     name = "golangci_lint_linux_amd64",
     build_file_content = _UNIX_BUILD,
-    sha256 = "8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553",
+    sha256 = "2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6",
     strip_prefix = "golangci-lint-{}-linux-amd64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "linux-amd64.tar.gz",
@@ -24,7 +24,7 @@ http_archive(
 http_archive(
     name = "golangci_lint_linux_arm64",
     build_file_content = _UNIX_BUILD,
-    sha256 = "44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a",
+    sha256 = "a2a4e0065aa41be71f7c5ac90f271b61751331e5d04314e62afe4027855f0893",
     strip_prefix = "golangci-lint-{}-linux-arm64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "linux-arm64.tar.gz",
@@ -35,7 +35,7 @@ http_archive(
 http_archive(
     name = "golangci_lint_darwin_amd64",
     build_file_content = _UNIX_BUILD,
-    sha256 = "f6f06d94b6241521c53d15450c5209b028270bf966f842afb11c030c79f5bc16",
+    sha256 = "8a13aaf9cbbb1dee52824e862cf0d0720e5bb97c1f4260d1e51623a09492b57b",
     strip_prefix = "golangci-lint-{}-darwin-amd64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "darwin-amd64.tar.gz",
@@ -46,7 +46,7 @@ http_archive(
 http_archive(
     name = "golangci_lint_darwin_arm64",
     build_file_content = _UNIX_BUILD,
-    sha256 = "a9c54498731b3128f79e090be6110f3e5fffccc617b08142ed244d4126c73f29",
+    sha256 = "f4bf83f0b64f055c42b28fc9a38861839f69c096e61c788e72dfaae412011789",
     strip_prefix = "golangci-lint-{}-darwin-arm64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "darwin-arm64.tar.gz",
@@ -57,7 +57,7 @@ http_archive(
 http_archive(
     name = "golangci_lint_windows_amd64",
     build_file_content = _WIN_BUILD,
-    sha256 = "bd42e3ebc8cb4ececb86941983baaf1dc221bbb04d838e94ce63b49cc91e02bb",
+    sha256 = "4735fdc8e84a0cfb7a15a1c364a650942f88215e0d36c674ebc4024f7b554524",
     strip_prefix = "golangci-lint-{}-windows-amd64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "windows-amd64.zip",
@@ -68,7 +68,7 @@ http_archive(
 http_archive(
     name = "golangci_lint_windows_arm64",
     build_file_content = _WIN_BUILD,
-    sha256 = "947b9a5bf762d465710b376c156f0184abb2168378b0826af1899e0ee7183742",
+    sha256 = "2dbffbd1225d41ac5740f0b478a43b6517f3e3f702fe0ab3aec470bd6ec8e263",
     strip_prefix = "golangci-lint-{}-windows-arm64".format(_GOLANGCI),
     urls = [_GOLANGCI_URL.format(
         platform = "windows-arm64.zip",

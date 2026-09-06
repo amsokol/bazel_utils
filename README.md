@@ -4,7 +4,7 @@ Starlark helpers for Bazel workspaces. Each language is a **separate Bazel modul
 
 `bazel_utils_core` is pulled in transitively. The root module `bazel_utils` in this repository is an aggregator for development, not a consumer dependency.
 
-Current module version: **0.2.3**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current module version: **0.2.4**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 | Module | Load | Public API |
 | --- | --- | --- |
@@ -19,16 +19,16 @@ Workspace-cd tests (`*_test` macros that `cd` to the consumer repo) default `loc
 
 Pass `buildifier` / `golangci` / `govulncheck` / `buf` / `ruff` / `pip_audit` / `cargo_audit` / `markdownlint` only to replace this module's binary.
 
-Modules live in subdirectories of [amsokol/bazel_utils](https://github.com/amsokol/bazel_utils.git). Pin each language module with `git_override` at tag `v0.2.3` and `strip_prefix` matching that directory. Language modules depend on `bazel_utils_core` (no public macros, not on the Bazel Central Registry), so add this once:
+Modules live in subdirectories of [amsokol/bazel_utils](https://github.com/amsokol/bazel_utils.git). Pin each language module with `git_override` at tag `v0.2.4` and `strip_prefix` matching that directory. Language modules depend on `bazel_utils_core` (no public macros, not on the Bazel Central Registry), so add this once:
 
 ```starlark
-bazel_dep(name = "bazel_utils_core", version = "0.2.3")
+bazel_dep(name = "bazel_utils_core", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_core",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "core",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
@@ -42,13 +42,13 @@ Prebuilt [buildifier](https://github.com/bazelbuild/buildtools) (GitHub release,
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_bazel", version = "0.2.3")
+bazel_dep(name = "bazel_utils_bazel", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_bazel",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "bazel",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
@@ -125,13 +125,13 @@ The action sandbox does not inherit the user shell. Without this, buf runs anony
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_buf", version = "0.2.3")
+bazel_dep(name = "bazel_utils_buf", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_buf",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "buf",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 
 buf = use_extension("@bazel_utils_buf//:extensions.bzl", "buf")
@@ -280,13 +280,13 @@ Prebuilt [golangci-lint](https://github.com/golangci/golangci-lint) (GitHub rele
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_go", version = "0.2.3")
+bazel_dep(name = "bazel_utils_go", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_go",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "go",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
@@ -354,13 +354,13 @@ Prebuilt [ruff](https://github.com/astral-sh/ruff) (GitHub release) and [pip-aud
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_python", version = "0.2.3")
+bazel_dep(name = "bazel_utils_python", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_python",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "python",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
@@ -444,13 +444,13 @@ Prebuilt [cargo-audit](https://github.com/rustsec/rustsec/tree/main/cargo-audit)
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_rust", version = "0.2.3")
+bazel_dep(name = "bazel_utils_rust", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_rust",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "rust",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
@@ -491,13 +491,13 @@ cargo_audit_test(
 
 ```starlark
 # MODULE.bazel
-bazel_dep(name = "bazel_utils_md", version = "0.2.3")
+bazel_dep(name = "bazel_utils_md", version = "0.2.4")
 
 git_override(
     module_name = "bazel_utils_md",
     remote = "https://github.com/amsokol/bazel_utils.git",
     strip_prefix = "markdown",
-    tag = "v0.2.3",
+    tag = "v0.2.4",
 )
 ```
 
