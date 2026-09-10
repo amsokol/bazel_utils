@@ -8,6 +8,15 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-09-10
+
+### Changed
+
+- Bumped gazelle to 0.54.0 (`bazel_utils_go`).
+- Bumped golang.org/x/vuln (govulncheck) from 1.7.0 to 1.8.0 (`bazel_utils_go`).
+- Bumped rules_python to 2.3.3 (`bazel_utils_python`).
+- Raised every language module and the aggregator to `0.2.5` (lockstep).
+
 ## [0.2.4] - 2026-09-06
 
 ### Changed
@@ -88,7 +97,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/amsokol/bazel_utils/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/amsokol/bazel_utils/compare/v0.2.1...v0.2.2
