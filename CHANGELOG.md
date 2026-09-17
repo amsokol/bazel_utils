@@ -8,6 +8,8 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-09-17
+
 ### Added
 
 - `bazel_utils_buf`: Buf CLI `v1.73.0` in the fetch catalog (`registry.bzl`).
@@ -20,6 +22,7 @@ patch; breaking Starlark API changes bump the minor.
 - Bumped Python `build` from 1.6.0 to 1.6.1 (`bazel_utils_python`).
 - markdownlint ignores nested `.venv` trees (`**/.venv/**`), not only a
   repo-root `.venv`.
+- Raised every language module and the aggregator to `0.2.6` (lockstep).
 
 ## [0.2.5] - 2026-09-10
 
@@ -110,7 +113,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/amsokol/bazel_utils/compare/v0.2.2...v0.2.3
