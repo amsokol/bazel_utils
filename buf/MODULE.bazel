@@ -13,5 +13,5 @@ bazel_dep(name = "protobuf", version = "36.1.bcr.1")
 # Fallback when this module is root. The consumer's buf.toolchains(version)
 # wins and is what gets downloaded.
 buf = use_extension("//:extensions.bzl", "buf")
-buf.toolchains(version = "v1.72.0")
+buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")

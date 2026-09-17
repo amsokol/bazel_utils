@@ -11,5 +11,6 @@ globs:
 
 ignores:
   - ".venv/**"
+  - "**/.venv/**"
   - "**/node_modules/**"
   - ".bazel/**"

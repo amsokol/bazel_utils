@@ -135,7 +135,7 @@ git_override(
 )
 
 buf = use_extension("@bazel_utils_buf//:extensions.bzl", "buf")
-buf.toolchains(version = "v1.72.0")
+buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")
 ```
 

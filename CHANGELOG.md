@@ -8,6 +8,19 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+### Added
+
+- `bazel_utils_buf`: Buf CLI `v1.73.0` in the fetch catalog (`registry.bzl`).
+  `v1.72.0` stays available.
+
+### Changed
+
+- `bazel_utils_buf`: fallback `buf.toolchains` when this module is root is
+  `v1.73.0`.
+- Bumped Python `build` from 1.6.0 to 1.6.1 (`bazel_utils_python`).
+- markdownlint ignores nested `.venv` trees (`**/.venv/**`), not only a
+  repo-root `.venv`.
+
 ## [0.2.5] - 2026-09-10
 
 ### Changed
