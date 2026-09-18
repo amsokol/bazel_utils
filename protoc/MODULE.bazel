@@ -2,11 +2,11 @@
 
 module(
     name = "bazel_utils_protoc",
-    version = "0.2.6",
+    version = "0.2.7",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
-bazel_dep(name = "bazel_utils_core", version = "0.2.6")
+bazel_dep(name = "bazel_utils_core", version = "0.2.7")
 
 # Fallback when this module is root. The consumer's protoc.plugin tags win
 # per name and are what get downloaded.

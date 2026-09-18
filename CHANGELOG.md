@@ -8,6 +8,8 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-09-18
+
 ### Added
 
 - `bazel_utils_protoc`: prebuilt `protoc-gen-*` plugins from GitHub
@@ -21,6 +23,10 @@ patch; breaking Starlark API changes bump the minor.
   Fallback tags when this module is root: buffa/packaging `v0.9.2`, connect-go
   `v1.21.0`, connect-rust `v0.9.0`, go `v1.36.12`, grpc-gateway/openapiv2
   `v2.30.0`, protovalidate `v0.10.0`.
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.7` (lockstep).
 
 ## [0.2.6] - 2026-09-17
 
@@ -127,7 +133,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.6...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/amsokol/bazel_utils/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/amsokol/bazel_utils/compare/v0.2.3...v0.2.4
