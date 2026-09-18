@@ -1,4 +1,4 @@
-"""Buf CLI, generate/lint/format, and consumer-built local codegen plugins."""
+"""Buf CLI, generate/lint/format, and consumer-built plugins."""
 
 module(
     name = "bazel_utils_buf",
@@ -7,11 +7,12 @@ module(
 
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "bazel_utils_core", version = "0.2.6")
+bazel_dep(name = "bazel_utils_protoc", version = "0.2.6")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "protobuf", version = "36.1.bcr.1")
 
-# Fallback when this module is root. The consumer's buf.toolchains(version)
-# wins and is what gets downloaded.
+# Fallback when this module is root. The consumer's buf.toolchains tag wins
+# and is what gets downloaded.
 buf = use_extension("//:extensions.bzl", "buf")
 buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")

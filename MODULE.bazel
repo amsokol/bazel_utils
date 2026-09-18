@@ -10,6 +10,7 @@ bazel_dep(name = "bazel_utils_buf", version = "0.2.6")
 bazel_dep(name = "bazel_utils_core", version = "0.2.6")
 bazel_dep(name = "bazel_utils_go", version = "0.2.6")
 bazel_dep(name = "bazel_utils_md", version = "0.2.6")
+bazel_dep(name = "bazel_utils_protoc", version = "0.2.6")
 bazel_dep(name = "bazel_utils_python", version = "0.2.6")
 bazel_dep(name = "bazel_utils_rust", version = "0.2.6")
 
@@ -36,6 +37,11 @@ local_path_override(
 local_path_override(
     module_name = "bazel_utils_md",
     path = "markdown",
+)
+
+local_path_override(
+    module_name = "bazel_utils_protoc",
+    path = "protoc",
 )
 
 local_path_override(

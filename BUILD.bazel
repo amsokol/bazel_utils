@@ -29,3 +29,17 @@ test_suite(
         "@bazel_utils_core//internal:workspace_rel_dir_test",
     ],
 )
+
+filegroup(
+    name = "protoc_plugins",
+    srcs = [
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa-packaging",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-connect-go",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-connect-rust",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-go",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-grpc-gateway",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-openapiv2",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-protovalidate-buffa",
+    ],
+)

@@ -10,6 +10,7 @@ Current module version: **0.2.6**. See [CHANGELOG.md](CHANGELOG.md) for release 
 | --- | --- | --- |
 | [`bazel_utils_bazel`](#bazel_utils_bazel) | `@bazel_utils_bazel//:bazel.bzl` | `buildifier_test`, `buildifier_format` |
 | [`bazel_utils_buf`](#bazel_utils_buf) | `@bazel_utils_buf//:buf.bzl` | `buf_module`, `buf_generate`, `buf_lint_test`, `buf_format`, `buf_plugin` |
+| [`bazel_utils_protoc`](#bazel_utils_protoc) | `@bazel_utils_protoc//:extensions.bzl` | prebuilt `protoc-gen-*` (`protoc.plugin`) |
 | [`bazel_utils_go`](#bazel_utils_go) | `@bazel_utils_go//:go.bzl` | `golangci_test`, `govulncheck_test` |
 | [`bazel_utils_python`](#bazel_utils_python) | `@bazel_utils_python//:python.bzl` | `ruff_test`, `ruff_format`, `pip_audit_test` |
 | [`bazel_utils_rust`](#bazel_utils_rust) | `@bazel_utils_rust//:rust.bzl` | `cargo_audit_test` |
@@ -108,7 +109,7 @@ buildifier_format(
 
 ## bazel_utils_buf
 
-Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and consumer-built local codegen plugins (`buf_plugin`).
+Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and `buf_plugin` for consumer-built plugins. Prebuilt `protoc-gen-*` binaries live in [`bazel_utils_protoc`](#bazel_utils_protoc); this module re-exports them at `@bazel_utils_buf//protoc/plugins/…` for `buf_generate(plugins = …)`.
 
 The generate/lint template (`buf.gen.yaml`) and `buf.yaml` `deps` are the source of truth. `buf_generate` passes the template to `buf generate --template` as-is (`out`, `include_imports`, `include_wkt`, `inputs`).
 
@@ -139,7 +140,7 @@ buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")
 ```
 
-`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). Build local plugins in the consumer and pass them to `buf_generate` with `buf_plugin`.
+`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). Prebuilt plugins are selected with `protoc.plugin` in [`bazel_utils_protoc`](#bazel_utils_protoc); pass `@bazel_utils_buf//protoc/plugins/…` to `buf_generate(plugins = …)`, or wrap a consumer-built binary with `buf_plugin`.
 
 ```starlark
 # api/v1/BUILD.bazel
@@ -179,14 +180,14 @@ buf_module(
 
 ### `buf_generate`
 
-`buf generate` over a `buf_module`. `plugins` (typically `buf_plugin`) are on PATH. Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated. On Windows, `buf.exe` looks up plugins with PATHEXT (`.exe`, `.bat`); `buf_generate` copies each plugin as `name.exe` so native LookPath succeeds.
+`buf generate` over a `buf_module`. `plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…` or consumer `buf_plugin` targets) are on PATH. Target name is the PATH name (`local:` in the template). Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated. On Windows, `buf.exe` looks up plugins with PATHEXT (`.exe`, `.bat`); `buf_generate` copies each plugin as `name.exe` so native LookPath succeeds.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `name` | `string` | yes | — | Target name. |
 | `module` | `label` (`buf_module`) | yes | — | Module to generate from. |
 | `template` | `label` | yes | — | `buf.gen.yaml` passed to `buf generate --template`. |
-| `plugins` | `label_list` (executable) | no | `[]` | Consumer-built local plugins (typically `buf_plugin`). Target **name** is the PATH name (`local:` in the template). |
+| `plugins` | `label_list` (executable) | no | `[]` | Local plugins: `@bazel_utils_buf//protoc/plugins/…` or consumer `buf_plugin` targets. Target **name** is the PATH name (`local:` in the template). |
 | `buf` | `label` | no | `@buf//:buf` | Override the pinned Buf CLI. |
 | `visibility` | `string_list` | no | package default | Target visibility. |
 
@@ -198,9 +199,38 @@ buf_generate(
 )
 ```
 
+### Prebuilt plugins
+
+GitHub-release binaries from [`bazel_utils_protoc`](#bazel_utils_protoc) (`protoc.plugin`). This module re-exports them so Buf consumers can pass `@bazel_utils_buf//protoc/plugins/…` to `buf_generate(plugins = …)` without a second label prefix. The target **name** is the PATH name (`local:` in the template). Do not wrap them with `buf_plugin`.
+
+| Label | Upstream | Catalog versions | Platforms |
+| --- | --- | --- | --- |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-buffa` | [anthropics/buffa](https://github.com/anthropics/buffa) `protoc-gen-buffa` | v0.9.2 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-buffa-packaging` | [anthropics/buffa](https://github.com/anthropics/buffa) `protoc-gen-buffa-packaging` | v0.9.2 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-connect-go` | [connectrpc/connect-go](https://github.com/connectrpc/connect-go) `protoc-gen-connect-go` | v1.21.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-connect-rust` | [connectrpc/connect-rust](https://github.com/connectrpc/connect-rust) `protoc-gen-connect-rust` | v0.9.0 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-go` | [protocolbuffers/protobuf-go](https://github.com/protocolbuffers/protobuf-go) `protoc-gen-go` | v1.36.12 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-grpc-gateway` | [grpc-ecosystem/grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) `protoc-gen-grpc-gateway` | v2.30.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-openapiv2` | [grpc-ecosystem/grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) `protoc-gen-openapiv2` | v2.30.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_buf//protoc/plugins/protoc-gen-protovalidate-buffa` | [mathematic-inc/protovalidate-buffa](https://github.com/mathematic-inc/protovalidate-buffa) | v0.10.0 | linux/darwin/windows amd64+arm64 |
+
+```starlark
+load("@bazel_utils_buf//:buf.bzl", "buf_generate")
+
+buf_generate(
+    name = "rust",
+    module = ":module",
+    plugins = [
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa",
+        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa-packaging",
+    ],
+    template = "//:buf.gen.rust.yaml",
+)
+```
+
 ### `buf_plugin`
 
-Wraps an executable so the target **name** is the PATH name `buf` looks up. Use it when the binary Bazel built is not already named like `protoc-gen-…` (crate_universe often emits `*_bin`). Pass the target to `buf_generate(plugins = …)`.
+Wraps an executable so the target **name** is the PATH name `buf` looks up. Use it for a **custom or locally built** plugin when the binary Bazel built is not already named like `protoc-gen-…` (crate_universe often emits `*_bin`). Pass the target to `buf_generate(plugins = …)`. Keep `buf_plugin` for those consumer-built plugins; the prebuilt labels above already have the right target name.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -267,6 +297,84 @@ buf_format(
     module = ":module",
 )
 ```
+
+---
+
+## bazel_utils_protoc
+
+Prebuilt `protoc-gen-*` codegen plugins from GitHub releases. These are ordinary protoc plugins (Buf, `protoc`, Connect, …). `protoc.plugin(name, version)` selects the release tag (catalog in `plugins/<name>/registry.bzl`); the root module's tag wins per plugin name. Omit a plugin to use this module's fallback.
+
+Canonical labels: `@bazel_utils_protoc//plugins/…`. [`bazel_utils_buf`](#bazel_utils_buf) re-exports the same binaries at `@bazel_utils_buf//protoc/plugins/…`.
+
+### Add to a Bazel project
+
+```starlark
+# MODULE.bazel
+bazel_dep(name = "bazel_utils_protoc", version = "0.2.6")
+
+git_override(
+    module_name = "bazel_utils_protoc",
+    remote = "https://github.com/amsokol/bazel_utils.git",
+    strip_prefix = "protoc",
+    tag = "v0.2.6",
+)
+
+protoc = use_extension("@bazel_utils_protoc//:extensions.bzl", "protoc")
+protoc.plugin(
+    name = "protoc-gen-buffa",
+    version = "v0.9.2",
+)
+protoc.plugin(
+    name = "protoc-gen-buffa-packaging",
+    version = "v0.9.2",
+)
+protoc.plugin(
+    name = "protoc-gen-connect-go",
+    version = "v1.21.0",
+)
+protoc.plugin(
+    name = "protoc-gen-connect-rust",
+    version = "v0.9.0",
+)
+protoc.plugin(
+    name = "protoc-gen-go",
+    version = "v1.36.12",
+)
+protoc.plugin(
+    name = "protoc-gen-grpc-gateway",
+    version = "v2.30.0",
+)
+protoc.plugin(
+    name = "protoc-gen-openapiv2",
+    version = "v2.30.0",
+)
+protoc.plugin(
+    name = "protoc-gen-protovalidate-buffa",
+    version = "v0.10.0",
+)
+```
+
+`bazel_utils_buf` already depends on this module, so a Buf-only consumer can skip the `bazel_dep` and still use the re-export labels at fallback versions. Pinning a different tag requires this extension (and a direct `bazel_dep`).
+
+#### `protoc.plugin`
+
+Module-extension tag. One per plugin name per module; the root module's tag wins for that name.
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `name` | `string` | yes | — | PATH name (`protoc-gen-buffa`, `protoc-gen-buffa-packaging`, `protoc-gen-connect-go`, `protoc-gen-connect-rust`, `protoc-gen-go`, `protoc-gen-grpc-gateway`, `protoc-gen-openapiv2`, `protoc-gen-protovalidate-buffa`). |
+| `version` | `string` | yes | — | GitHub release tag (must exist in this module's `plugins/<name>/registry.bzl`). |
+
+| Label | Upstream | Catalog versions | Platforms |
+| --- | --- | --- | --- |
+| `@bazel_utils_protoc//plugins/protoc-gen-buffa` | [anthropics/buffa](https://github.com/anthropics/buffa) `protoc-gen-buffa` | v0.9.2 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_protoc//plugins/protoc-gen-buffa-packaging` | [anthropics/buffa](https://github.com/anthropics/buffa) `protoc-gen-buffa-packaging` | v0.9.2 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_protoc//plugins/protoc-gen-connect-go` | [connectrpc/connect-go](https://github.com/connectrpc/connect-go) `protoc-gen-connect-go` | v1.21.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_protoc//plugins/protoc-gen-connect-rust` | [connectrpc/connect-rust](https://github.com/connectrpc/connect-rust) `protoc-gen-connect-rust` | v0.9.0 | linux/darwin amd64+arm64, windows amd64 (no windows-arm64 asset) |
+| `@bazel_utils_protoc//plugins/protoc-gen-go` | [protocolbuffers/protobuf-go](https://github.com/protocolbuffers/protobuf-go) `protoc-gen-go` | v1.36.12 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_protoc//plugins/protoc-gen-grpc-gateway` | [grpc-ecosystem/grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) `protoc-gen-grpc-gateway` | v2.30.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_protoc//plugins/protoc-gen-openapiv2` | [grpc-ecosystem/grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) `protoc-gen-openapiv2` | v2.30.0 | linux/darwin/windows amd64+arm64 |
+| `@bazel_utils_protoc//plugins/protoc-gen-protovalidate-buffa` | [mathematic-inc/protovalidate-buffa](https://github.com/mathematic-inc/protovalidate-buffa) | v0.10.0 | linux/darwin/windows amd64+arm64 |
 
 ---
 

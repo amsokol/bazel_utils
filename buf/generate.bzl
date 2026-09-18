@@ -1,8 +1,9 @@
 """Hermetic buf generate and staged buf_module.
 
 Buf CLI is `@buf//:buf` from `buf.toolchains(version)` (cannot use go_binary — bufprivateusage).
-Consumer `plugins` (`buf_plugin` or any executable) are put on PATH. `remote:`
-plugins and `buf.yaml` `deps` are fetched from the BSR (needs network).
+Consumer `plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…`
+or `buf_plugin`) are put on PATH. `remote:` plugins and `buf.yaml` `deps`
+are fetched from the BSR (needs network).
 """
 
 BufGeneratedInfo = provider(
@@ -211,10 +212,11 @@ buf_generate = rule(
     implementation = _buf_generate_impl,
     doc = """`buf generate` over a buf_module.
 
-`plugins` (typically `buf_plugin`) are put on PATH. Target name is the
-PATH name (`local:` in the template). `remote:` plugins in the template
-are fetched from the BSR (the action requires network). `buf dep update`
-resolves `buf.yaml` `deps` into the action workdir.
+`plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…` or
+consumer `buf_plugin` targets) are put on PATH. Target name is the PATH
+name (`local:` in the template). `remote:` plugins in the template are fetched from the BSR
+(the action requires network). `buf dep update` resolves `buf.yaml`
+`deps` into the action workdir.
 
 The template is passed to `buf generate --template` as-is (`out`,
 `include_imports`, `include_wkt`, `inputs`). This rule does not parse it.
@@ -241,7 +243,7 @@ for write_source_files.
         "plugins": attr.label_list(
             cfg = "exec",
             allow_files = True,
-            doc = "Consumer-built local plugins. Target name is the PATH name (`local:` in the template). Wrap with buf_plugin when the binary name differs.",
+            doc = "Local plugins put on PATH: prebuilt labels (`@bazel_utils_buf//protoc/plugins/protoc-gen-buffa`, …) or consumer `buf_plugin` targets. Target name is the PATH name (`local:` in the template). Wrap with buf_plugin when the binary name differs.",
         ),
         "buf": _BUF_ATTR,
     },

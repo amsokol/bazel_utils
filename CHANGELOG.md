@@ -8,6 +8,20 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+### Added
+
+- `bazel_utils_protoc`: prebuilt `protoc-gen-*` plugins from GitHub
+  (`protoc-gen-buffa`, `protoc-gen-buffa-packaging`, `protoc-gen-connect-go`,
+  `protoc-gen-connect-rust`, `protoc-gen-go`, `protoc-gen-grpc-gateway`,
+  `protoc-gen-openapiv2`, `protoc-gen-protovalidate-buffa`). Version catalog
+  is `plugins/<name>/registry.bzl` (same shape as `buf.toolchains` /
+  `registry.bzl`). Select a tag with `protoc.plugin(name, version)`. Canonical
+  labels: `@bazel_utils_protoc//plugins/<name>`. `bazel_utils_buf` re-exports
+  them at `@bazel_utils_buf//protoc/plugins/<name>` for `buf_generate`.
+  Fallback tags when this module is root: buffa/packaging `v0.9.2`, connect-go
+  `v1.21.0`, connect-rust `v0.9.0`, go `v1.36.12`, grpc-gateway/openapiv2
+  `v2.30.0`, protovalidate `v0.10.0`.
+
 ## [0.2.6] - 2026-09-17
 
 ### Added

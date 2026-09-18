@@ -1,0 +1,18 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+bzl_library(
+    name = "defs_bzl",
+    srcs = ["defs.bzl"],
+    deps = [
+        "//plugins/protoc-gen-buffa:registry_bzl",
+        "//plugins/protoc-gen-buffa-packaging:registry_bzl",
+        "//plugins/protoc-gen-connect-go:registry_bzl",
+        "//plugins/protoc-gen-connect-rust:registry_bzl",
+        "//plugins/protoc-gen-go:registry_bzl",
+        "//plugins/protoc-gen-grpc-gateway:registry_bzl",
+        "//plugins/protoc-gen-openapiv2:registry_bzl",
+        "//plugins/protoc-gen-protovalidate-buffa:registry_bzl",
+    ],
+)

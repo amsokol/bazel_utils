@@ -5,3 +5,4 @@ rust
 markdown
 bazel
 buf
+protoc

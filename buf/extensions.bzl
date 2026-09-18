@@ -1,4 +1,4 @@
-"""buf.toolchains: fetch the CLI and expose @buf."""
+"""buf.toolchains: fetch the Buf CLI GitHub release."""
 
 load("//:registry.bzl", "cli_platforms")
 

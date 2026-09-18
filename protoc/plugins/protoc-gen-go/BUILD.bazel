@@ -1,0 +1,14 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Target name is the PATH name (`local:` / protoc-gen) the frontend looks up.
+alias(
+    name = "protoc-gen-go",
+    actual = "@protoc_gen_go//:protoc-gen-go",
+)
+
+bzl_library(
+    name = "registry_bzl",
+    srcs = ["registry.bzl"],
+)

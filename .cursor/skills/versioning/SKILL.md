@@ -30,14 +30,16 @@ Do not skip numbers. Do not jump to `1.0.0` unless the user explicitly wants a s
 
 **Breaking** means consumer-visible Starlark: renamed/removed rules or attrs, required new attrs, provider changes, `buf.toolchains` contract. Pinned tool upgrades are a patch (0.x) or minor (≥1.0) unless they force a breaking API/output change.
 
-Tool pins (Buf CLI, ruff, and consumer-built plugins like `protoc-gen-protovalidate-buffa`) are **not** this version — see `update-pinned-tools` in the consumer repo.
+Tool pins (Buf CLI via `buf.toolchains`, plugins via `protoc.plugin`, ruff) are
+**not** this version. CLI hashes live in `buf/registry.bzl`; plugin hashes in
+`protoc/plugins/<name>/registry.bzl`. The consumer selects the release tag.
 
 ## Lockstep files
 
 Set the same `MAJOR.MINOR.PATCH` everywhere:
 
 - Root `MODULE.bazel`: `module(version = …)` and every `bazel_dep(name = "bazel_utils_*", version = …)`
-- Each language module `module(version = …)`: `bazel/`, `buf/`, `core/`, `go/`, `markdown/`, `python/`, `rust/`
+- Each language module `module(version = …)`: `bazel/`, `buf/`, `core/`, `go/`, `markdown/`, `protoc/`, `python/`, `rust/`
 - Each language module's `bazel_dep(name = "bazel_utils_core", version = …)` (except `core/` itself)
 - `README.md`: “Current module version”, every example `bazel_dep(… version = …)`, every `git_override(… tag = "v…")`
 

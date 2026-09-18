@@ -1,0 +1,56 @@
+"""Prebuilt protoc codegen plugins from GitHub releases."""
+
+module(
+    name = "bazel_utils_protoc",
+    version = "0.2.6",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
+bazel_dep(name = "bazel_utils_core", version = "0.2.6")
+
+# Fallback when this module is root. The consumer's protoc.plugin tags win
+# per name and are what get downloaded.
+protoc = use_extension("//:extensions.bzl", "protoc")
+protoc.plugin(
+    name = "protoc-gen-buffa",
+    version = "v0.9.2",
+)
+protoc.plugin(
+    name = "protoc-gen-buffa-packaging",
+    version = "v0.9.2",
+)
+protoc.plugin(
+    name = "protoc-gen-connect-go",
+    version = "v1.21.0",
+)
+protoc.plugin(
+    name = "protoc-gen-connect-rust",
+    version = "v0.9.0",
+)
+protoc.plugin(
+    name = "protoc-gen-go",
+    version = "v1.36.12",
+)
+protoc.plugin(
+    name = "protoc-gen-grpc-gateway",
+    version = "v2.30.0",
+)
+protoc.plugin(
+    name = "protoc-gen-openapiv2",
+    version = "v2.30.0",
+)
+protoc.plugin(
+    name = "protoc-gen-protovalidate-buffa",
+    version = "v0.10.0",
+)
+use_repo(
+    protoc,
+    "protoc_gen_buffa",
+    "protoc_gen_buffa_packaging",
+    "protoc_gen_connect_go",
+    "protoc_gen_connect_rust",
+    "protoc_gen_go",
+    "protoc_gen_grpc_gateway",
+    "protoc_gen_openapiv2",
+    "protoc_gen_protovalidate_buffa",
+)

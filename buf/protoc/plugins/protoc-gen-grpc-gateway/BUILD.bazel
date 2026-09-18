@@ -1,0 +1,6 @@
+package(default_visibility = ["//visibility:public"])
+
+alias(
+    name = "protoc-gen-grpc-gateway",
+    actual = "@bazel_utils_protoc//plugins/protoc-gen-grpc-gateway",
+)
