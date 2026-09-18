@@ -109,7 +109,7 @@ buildifier_format(
 
 ## bazel_utils_buf
 
-Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and `buf_plugin` for consumer-built plugins. Prebuilt `protoc-gen-*` binaries live in [`bazel_utils_protoc`](#bazel_utils_protoc); this module re-exports them at `@bazel_utils_buf//protoc/plugins/…` for `buf_generate(plugins = …)`.
+Hermetic [Buf CLI](https://buf.build) (GitHub release via `buf.toolchains`), generate/lint/format, and `buf_plugin` for consumer-built plugins. Prebuilt `protoc-gen-*` binaries live in [`bazel_utils_protoc`](#bazel_utils_protoc). The root module's `protoc.plugin` tags are on PATH for every `buf_generate`; this module also re-exports them at `@bazel_utils_buf//protoc/plugins/…` for an explicit `plugins` override.
 
 The generate/lint template (`buf.gen.yaml`) and `buf.yaml` `deps` are the source of truth. `buf_generate` passes the template to `buf generate --template` as-is (`out`, `include_imports`, `include_wkt`, `inputs`).
 
@@ -140,7 +140,7 @@ buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")
 ```
 
-`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). Prebuilt plugins are selected with `protoc.plugin` in [`bazel_utils_protoc`](#bazel_utils_protoc); pass `@bazel_utils_buf//protoc/plugins/…` to `buf_generate(plugins = …)`, or wrap a consumer-built binary with `buf_plugin`.
+`buf.toolchains(version)` is required (CLI tag must exist in this module's `registry.bzl`). Prebuilt plugins are selected with `protoc.plugin` in [`bazel_utils_protoc`](#bazel_utils_protoc); those tags are on PATH for `buf_generate`. Wrap a consumer-built binary with `buf_plugin` and pass it in `plugins`.
 
 ```starlark
 # api/v1/BUILD.bazel
@@ -180,14 +180,14 @@ buf_module(
 
 ### `buf_generate`
 
-`buf generate` over a `buf_module`. `plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…` or consumer `buf_plugin` targets) are on PATH. Target name is the PATH name (`local:` in the template). Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated. On Windows, `buf.exe` looks up plugins with PATHEXT (`.exe`, `.bat`); `buf_generate` copies each plugin as `name.exe` so native LookPath succeeds.
+`buf generate` over a `buf_module`. The root module's `protoc.plugin` tags are on PATH automatically. Extra `plugins` (`buf_plugin` or other executables) are merged; the same PATH name prefers the explicit target. Target name is the PATH name (`local:` in the template). Returns a directory TreeArtifact of the files buf wrote (for `write_source_files`). Those files must share one directory; use a separate `buf_generate` per template when `out` paths are unrelated. On Windows, `buf.exe` looks up plugins with PATHEXT (`.exe`, `.bat`); `buf_generate` copies each plugin as `name.exe` so native LookPath succeeds.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `name` | `string` | yes | — | Target name. |
 | `module` | `label` (`buf_module`) | yes | — | Module to generate from. |
 | `template` | `label` | yes | — | `buf.gen.yaml` passed to `buf generate --template`. |
-| `plugins` | `label_list` (executable) | no | `[]` | Local plugins: `@bazel_utils_buf//protoc/plugins/…` or consumer `buf_plugin` targets. Target **name** is the PATH name (`local:` in the template). |
+| `plugins` | `label_list` (executable) | no | `[]` | Extra local plugins (`buf_plugin` or any executable). Merged with root `protoc.plugin` tags. Target **name** is the PATH name (`local:` in the template). |
 | `buf` | `label` | no | `@buf//:buf` | Override the pinned Buf CLI. |
 | `visibility` | `string_list` | no | package default | Target visibility. |
 
@@ -201,7 +201,7 @@ buf_generate(
 
 ### Prebuilt plugins
 
-GitHub-release binaries from [`bazel_utils_protoc`](#bazel_utils_protoc) (`protoc.plugin`). This module re-exports them so Buf consumers can pass `@bazel_utils_buf//protoc/plugins/…` to `buf_generate(plugins = …)` without a second label prefix. The target **name** is the PATH name (`local:` in the template). Do not wrap them with `buf_plugin`.
+GitHub-release binaries from [`bazel_utils_protoc`](#bazel_utils_protoc). Tag them with `protoc.plugin` in the root module; `buf_generate` puts those on PATH. Do not also list them in `plugins` unless you need an extra binary or an override. This module re-exports the same binaries at `@bazel_utils_buf//protoc/plugins/…`. The target **name** is the PATH name (`local:` in the template). Do not wrap them with `buf_plugin`.
 
 | Label | Upstream | Catalog versions | Platforms |
 | --- | --- | --- | --- |
@@ -220,17 +220,13 @@ load("@bazel_utils_buf//:buf.bzl", "buf_generate")
 buf_generate(
     name = "rust",
     module = ":module",
-    plugins = [
-        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa",
-        "@bazel_utils_buf//protoc/plugins/protoc-gen-buffa-packaging",
-    ],
     template = "//:buf.gen.rust.yaml",
 )
 ```
 
 ### `buf_plugin`
 
-Wraps an executable so the target **name** is the PATH name `buf` looks up. Use it for a **custom or locally built** plugin when the binary Bazel built is not already named like `protoc-gen-…` (crate_universe often emits `*_bin`). Pass the target to `buf_generate(plugins = …)`. Keep `buf_plugin` for those consumer-built plugins; the prebuilt labels above already have the right target name.
+Wraps an executable so the target **name** is the PATH name `buf` looks up. Use it for a **custom or locally built** plugin when the binary Bazel built is not already named like `protoc-gen-…` (crate_universe often emits `*_bin`). Pass the target to `buf_generate(plugins = …)`. Root-module `protoc.plugin` tags are already on PATH; keep `buf_plugin` for consumer-built extras.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -302,7 +298,7 @@ buf_format(
 
 ## bazel_utils_protoc
 
-Prebuilt `protoc-gen-*` codegen plugins from GitHub releases. These are ordinary protoc plugins (Buf, `protoc`, Connect, …). `protoc.plugin(name, version)` selects the release tag (catalog in `plugins/<name>/registry.bzl`); the root module's tag wins per plugin name. Omit a plugin to use this module's fallback.
+Prebuilt `protoc-gen-*` codegen plugins from GitHub releases. These are ordinary protoc plugins (Buf, `protoc`, Connect, …). `protoc.plugin(name, version)` selects the release tag (catalog in `plugins/<name>/registry.bzl`); the root module's tag wins per plugin name. Omit a plugin to use this module's fallback. Root-module `protoc.plugin` tags are also the set `buf_generate` puts on PATH (catalog fallbacks are not).
 
 Canonical labels: `@bazel_utils_protoc//plugins/…`. [`bazel_utils_buf`](#bazel_utils_buf) re-exports the same binaries at `@bazel_utils_buf//protoc/plugins/…`.
 

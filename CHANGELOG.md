@@ -8,6 +8,13 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+### Added
+
+- `buf_generate` puts the root module's `protoc.plugin` tags on PATH
+  automatically (not catalog fallbacks). Extra `plugins` (`buf_plugin` or
+  other executables) are merged; the same PATH name prefers the explicit
+  target.
+
 ## [0.2.7] - 2026-09-18
 
 ### Added

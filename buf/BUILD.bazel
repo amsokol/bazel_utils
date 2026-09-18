@@ -10,6 +10,7 @@ bzl_library(
 bzl_library(
     name = "generate_bzl",
     srcs = ["generate.bzl"],
+    deps = ["@protoc_root_plugins//:plugins_bzl"],
 )
 
 bzl_library(

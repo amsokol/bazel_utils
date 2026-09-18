@@ -1,8 +1,10 @@
 """Executable wrapper whose target name is the PATH name buf looks up.
 
 Pass the target to `buf_generate(plugins = ...)`. `name` must match `local:`
-in the generate template. `native.alias` is transparent, so wrap crate_universe
-`*_bin` (and any other mismatched binary name) with this rule.
+in the generate template. Use this for consumer-built binaries; root-module
+`protoc.plugin` tags are already on PATH. `native.alias` is transparent, so
+wrap crate_universe `*_bin` (and any other mismatched binary name) with this
+rule.
 """
 
 def _buf_plugin_impl(ctx):

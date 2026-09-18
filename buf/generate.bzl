@@ -1,10 +1,13 @@
 """Hermetic buf generate and staged buf_module.
 
 Buf CLI is `@buf//:buf` from `buf.toolchains(version)` (cannot use go_binary — bufprivateusage).
-Consumer `plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…`
-or `buf_plugin`) are put on PATH. `remote:` plugins and `buf.yaml` `deps`
+Root-module `protoc.plugin` tags are put on PATH automatically. Extra
+`plugins` (`buf_plugin` or other executables) are merged; the same PATH
+name prefers the explicit target. `remote:` plugins and `buf.yaml` `deps`
 are fetched from the BSR (needs network).
 """
+
+load("@protoc_root_plugins//:plugins.bzl", "ROOT_PLUGIN_LABELS")
 
 BufGeneratedInfo = provider(
     doc = "Generated files from buf_generate.",
@@ -38,8 +41,13 @@ def _module_directory(ctx):
     return ctx.attr.module[BufModuleInfo].directory
 
 def _plugin_targets(ctx):
-    """Consumer `plugins` (target name is the PATH name)."""
-    return list(ctx.attr.plugins)
+    """Root `protoc.plugin` tags plus consumer `plugins`. Same PATH name: explicit wins."""
+    by_name = {}
+    for target in ctx.attr._root_plugins:
+        by_name[target.label.name] = target
+    for target in ctx.attr.plugins:
+        by_name[target.label.name] = target
+    return [by_name[name] for name in sorted(by_name.keys())]
 
 def _plugin_path_lines(ctx):
     """Write PATH wrappers that exec Bazel-built local plugins.
@@ -212,9 +220,10 @@ buf_generate = rule(
     implementation = _buf_generate_impl,
     doc = """`buf generate` over a buf_module.
 
-`plugins` (prebuilt labels from `@bazel_utils_buf//protoc/plugins/…` or
-consumer `buf_plugin` targets) are put on PATH. Target name is the PATH
-name (`local:` in the template). `remote:` plugins in the template are fetched from the BSR
+Root-module `protoc.plugin` tags are put on PATH automatically. Extra
+`plugins` (`buf_plugin` or other executables) are merged; the same PATH
+name prefers the explicit target. Target name is the PATH name (`local:`
+in the template). `remote:` plugins in the template are fetched from the BSR
 (the action requires network). `buf dep update` resolves `buf.yaml`
 `deps` into the action workdir.
 
@@ -243,7 +252,13 @@ for write_source_files.
         "plugins": attr.label_list(
             cfg = "exec",
             allow_files = True,
-            doc = "Local plugins put on PATH: prebuilt labels (`@bazel_utils_buf//protoc/plugins/protoc-gen-buffa`, …) or consumer `buf_plugin` targets. Target name is the PATH name (`local:` in the template). Wrap with buf_plugin when the binary name differs.",
+            doc = "Extra local plugins put on PATH (`buf_plugin` or any executable). Merged with the root module's `protoc.plugin` tags. Same PATH name: this list wins. Target name is the PATH name (`local:` in the template).",
+        ),
+        "_root_plugins": attr.label_list(
+            default = ROOT_PLUGIN_LABELS,
+            cfg = "exec",
+            allow_files = True,
+            doc = "Root-module `protoc.plugin` tags (`@protoc_root_plugins//:<name>`).",
         ),
         "buf": _BUF_ATTR,
     },

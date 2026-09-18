@@ -53,3 +53,7 @@ local_path_override(
     module_name = "bazel_utils_rust",
     path = "rust",
 )
+
+# Empty ROOT_PLUGIN_LABELS here: this aggregator has no protoc.plugin tags.
+protoc = use_extension("@bazel_utils_protoc//:extensions.bzl", "protoc")
+use_repo(protoc, "protoc_root_plugins")

@@ -1,7 +1,12 @@
 load("@bazel_utils_bazel//:bazel.bzl", "buildifier_format", "buildifier_test")
 load("@bazel_utils_md//:markdown.bzl", "markdownlint_test")
+load("//:root_plugins.bzl", "assert_empty_root_plugin_labels")
 
 package(default_visibility = ["//visibility:public"])
+
+# Fallback tags in bazel_utils_protoc must not auto-PATH here: this module
+# has no `protoc.plugin` tags.
+assert_empty_root_plugin_labels()
 
 exports_files([
     ".markdownlint-cli2.yaml",

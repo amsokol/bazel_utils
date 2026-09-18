@@ -138,6 +138,48 @@ _plugin_repo = repository_rule(
     },
 )
 
+_ROOT_PLUGINS_REPO = "protoc_root_plugins"
+
+def _root_plugins_repo_impl(rctx):
+    """Aliases and ROOT_PLUGIN_LABELS for the root module's `protoc.plugin` tags."""
+    names = json.decode(rctx.attr.names_json)
+    aliases = []
+    label_lines = []
+    for name in names:
+        aliases.append("""\
+alias(
+    name = "{name}",
+    actual = "@{repo}//:{name}",
+)
+""".format(name = name, repo = plugin_repo_name(name)))
+        label_lines.append('    "@{}//:{}",'.format(_ROOT_PLUGINS_REPO, name))
+    rctx.file("BUILD.bazel", """\
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+{aliases}
+bzl_library(
+    name = "plugins_bzl",
+    srcs = ["plugins.bzl"],
+)
+""".format(aliases = "\n".join(aliases)))
+    rctx.file("plugins.bzl", """\
+\"\"\"Labels for the root module's `protoc.plugin` tags.\"\"\"
+
+ROOT_PLUGIN_LABELS = [
+{labels}
+]
+""".format(labels = "\n".join(label_lines)))
+    rctx.file("REPO.bazel", "")
+
+_root_plugins_repo = repository_rule(
+    implementation = _root_plugins_repo_impl,
+    attrs = {
+        "names_json": attr.string(),
+    },
+)
+
 def _plugin_versions(module_ctx):
     root = {}
     ours = {}
@@ -161,10 +203,10 @@ def _plugin_versions(module_ctx):
     missing = [name for name in PLUGINS if name not in versions]
     if missing:
         fail("protoc.plugin: version required for {}".format(", ".join(sorted(missing))))
-    return versions
+    return versions, sorted(root.keys())
 
 def _protoc_impl(module_ctx):
-    versions = _plugin_versions(module_ctx)
+    versions, root_names = _plugin_versions(module_ctx)
     for name in sorted(PLUGINS.keys()):
         version = versions[name]
         _plugin_repo(
@@ -173,6 +215,10 @@ def _protoc_impl(module_ctx):
             platforms_json = json.encode(plugin_platforms(name, version)),
             version = version,
         )
+    _root_plugins_repo(
+        name = _ROOT_PLUGINS_REPO,
+        names_json = json.encode(root_names),
+    )
     return module_ctx.extension_metadata(reproducible = True)
 
 _plugin_tag = tag_class(

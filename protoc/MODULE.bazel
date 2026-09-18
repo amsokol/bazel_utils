@@ -53,4 +53,5 @@ use_repo(
     "protoc_gen_grpc_gateway",
     "protoc_gen_openapiv2",
     "protoc_gen_protovalidate_buffa",
+    "protoc_root_plugins",
 )

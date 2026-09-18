@@ -16,3 +16,7 @@ bazel_dep(name = "protobuf", version = "36.1.bcr.1")
 buf = use_extension("//:extensions.bzl", "buf")
 buf.toolchains(version = "v1.73.0")
 use_repo(buf, "buf")
+
+# Root-module `protoc.plugin` labels for buf_generate PATH (`ROOT_PLUGIN_LABELS`).
+protoc = use_extension("@bazel_utils_protoc//:extensions.bzl", "protoc")
+use_repo(protoc, "protoc_root_plugins")
