@@ -8,12 +8,18 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-09-18
+
 ### Added
 
 - `buf_generate` puts the root module's `protoc.plugin` tags on PATH
   automatically (not catalog fallbacks). Extra `plugins` (`buf_plugin` or
   other executables) are merged; the same PATH name prefers the explicit
   target.
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.8` (lockstep).
 
 ## [0.2.7] - 2026-09-18
 
@@ -140,7 +146,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.7...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/amsokol/bazel_utils/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/amsokol/bazel_utils/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/amsokol/bazel_utils/compare/v0.2.4...v0.2.5

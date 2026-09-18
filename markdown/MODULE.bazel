@@ -2,12 +2,12 @@
 
 module(
     name = "bazel_utils_md",
-    version = "0.2.7",
+    version = "0.2.8",
 )
 
 bazel_dep(name = "aspect_rules_js", version = "3.4.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
-bazel_dep(name = "bazel_utils_core", version = "0.2.7")
+bazel_dep(name = "bazel_utils_core", version = "0.2.8")
 bazel_dep(name = "rules_nodejs", version = "6.7.5")
 
 # Latest Node in rules_nodejs 6.7.5's catalog (24.19.0 is not listed yet).

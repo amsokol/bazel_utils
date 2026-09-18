@@ -2,17 +2,17 @@
 
 module(
     name = "bazel_utils",
-    version = "0.2.7",
+    version = "0.2.8",
 )
 
-bazel_dep(name = "bazel_utils_bazel", version = "0.2.7")
-bazel_dep(name = "bazel_utils_buf", version = "0.2.7")
-bazel_dep(name = "bazel_utils_core", version = "0.2.7")
-bazel_dep(name = "bazel_utils_go", version = "0.2.7")
-bazel_dep(name = "bazel_utils_md", version = "0.2.7")
-bazel_dep(name = "bazel_utils_protoc", version = "0.2.7")
-bazel_dep(name = "bazel_utils_python", version = "0.2.7")
-bazel_dep(name = "bazel_utils_rust", version = "0.2.7")
+bazel_dep(name = "bazel_utils_bazel", version = "0.2.8")
+bazel_dep(name = "bazel_utils_buf", version = "0.2.8")
+bazel_dep(name = "bazel_utils_core", version = "0.2.8")
+bazel_dep(name = "bazel_utils_go", version = "0.2.8")
+bazel_dep(name = "bazel_utils_md", version = "0.2.8")
+bazel_dep(name = "bazel_utils_protoc", version = "0.2.8")
+bazel_dep(name = "bazel_utils_python", version = "0.2.8")
+bazel_dep(name = "bazel_utils_rust", version = "0.2.8")
 
 local_path_override(
     module_name = "bazel_utils_bazel",
