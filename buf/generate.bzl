@@ -25,6 +25,13 @@ BufModuleInfo = provider(
     },
 )
 
+BufDepInfo = provider(
+    doc = "Import-only proto tree from buf_deps.",
+    fields = {
+        "staged": "dict[str, File]: import path → File after strip_import_prefix.",
+    },
+)
+
 def _workspace_rel(ctx, f, what):
     """short_path of a file that must live in the consumer workspace."""
     rel = f.short_path
@@ -35,6 +42,64 @@ def _workspace_rel(ctx, f, what):
             rel,
         ))
     return rel
+
+def repo_rel_from_short_path(short_path):
+    """Path of a File inside its repository.
+
+    Workspace files keep `short_path`. External files drop `../<repo>+/`.
+
+    Args:
+      short_path: Bazel `File.short_path` (`pkg/file.proto` or `../repo+/pkg/file.proto`).
+
+    Returns:
+      Path relative to that file's repository root.
+    """
+    if short_path.startswith("/"):
+        fail("proto path must not be absolute, got {}".format(short_path))
+    if short_path.startswith("../"):
+        rest = short_path[len("../"):]
+        slash = rest.find("/")
+        if slash == -1 or slash == len(rest) - 1:
+            fail("external proto path has no repo-relative file, got {}".format(short_path))
+        return rest[slash + 1:]
+    return short_path
+
+def dep_import_path(repo_rel, strip_import_prefix):
+    """Import path for a `buf_deps` proto after an optional repository prefix.
+
+    `strip_import_prefix` may be `proto` or `/proto` (same meaning). Empty
+    keeps the repository-relative path. The tree under that prefix is kept,
+    so files in subfolders still import each other.
+
+    Args:
+      repo_rel: Repository-relative proto path (`proto/pkg/file.proto`).
+      strip_import_prefix: Prefix to drop (`proto`, `/proto`, or `""`).
+
+    Returns:
+      Import path used when staging the file under the buf module root.
+    """
+    if not repo_rel or repo_rel.startswith("/") or "\\" in repo_rel:
+        fail("dep proto path is not a relative POSIX path, got {}".format(repo_rel))
+    parts = repo_rel.split("/")
+    if "." in parts or ".." in parts or "" in parts:
+        fail("dep proto path is not a valid import path, got {}".format(repo_rel))
+    prefix = strip_import_prefix
+    if prefix.startswith("/"):
+        prefix = prefix[1:]
+    if prefix.endswith("/"):
+        prefix = prefix[:-1]
+    if prefix:
+        pref_parts = prefix.split("/")
+        if len(parts) <= len(pref_parts) or parts[:len(pref_parts)] != pref_parts:
+            fail("dep proto {} does not start with strip prefix {}".format(
+                repo_rel,
+                strip_import_prefix,
+            ))
+        parts = parts[len(pref_parts):]
+    import_path = "/".join(parts)
+    if not import_path.endswith(".proto"):
+        fail("dep is not a .proto import path, got {}".format(import_path))
+    return import_path
 
 def _module_directory(ctx):
     """TreeArtifact from a buf_module dependency."""
@@ -264,9 +329,68 @@ for write_source_files.
     },
 )
 
+def _buf_deps_impl(ctx):
+    """Map srcs to import paths with this target's strip_import_prefix."""
+    staged = {}
+    strip = ctx.attr.strip_import_prefix
+    for src in ctx.files.srcs:
+        rel = dep_import_path(repo_rel_from_short_path(src.short_path), strip)
+        if rel in staged:
+            fail("{}: duplicate import path {}".format(ctx.label, rel))
+        staged[rel] = src
+    return [
+        DefaultInfo(files = depset(ctx.files.srcs)),
+        BufDepInfo(staged = staged),
+    ]
+
+_buf_deps = rule(
+    implementation = _buf_deps_impl,
+    doc = """Import-only proto tree. One include root (`strip_import_prefix`).
+
+Subfolders stay under that root, so files can import each other. Pass the
+target to `buf_module` `deps`. Not formatted.
+""",
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = [".proto"],
+            mandatory = True,
+            doc = "Protobuf sources in this or another repository (file, filegroup, or glob).",
+        ),
+        "strip_import_prefix": attr.string(
+            default = "",
+            doc = "Repository-relative include root to drop (`proto` and `/proto` are the same). Empty keeps the path inside that repository.",
+        ),
+    },
+)
+
+def buf_deps(name, srcs, strip_import_prefix = "", **kwargs):
+    """Import-only proto tree for `buf_module` `deps`."""
+    _buf_deps(
+        name = name,
+        srcs = srcs,
+        strip_import_prefix = strip_import_prefix,
+        **kwargs
+    )
+
 def _buf_module_impl(ctx):
-    """Stage workspace-relative protos and the consumer buf.yaml."""
+    """Stage workspace srcs and import-only deps under the consumer buf.yaml."""
     _workspace_rel(ctx, ctx.file.config, "buf.yaml")
+    staged = {}
+    dep_files = []
+    for src in ctx.files.srcs:
+        rel = _workspace_rel(ctx, src, "proto")
+        if rel in staged:
+            fail("{}: duplicate proto path {}".format(ctx.label, rel))
+        staged[rel] = src
+    for dep in ctx.attr.deps:
+        for rel, src in dep[BufDepInfo].staged.items():
+            if rel in staged:
+                fail("{}: dep import path {} collides with another proto".format(
+                    ctx.label,
+                    rel,
+                ))
+            staged[rel] = src
+            dep_files.append(src)
     out = ctx.actions.declare_directory(ctx.label.name)
     lines = [
         "set -euo pipefail",
@@ -275,13 +399,13 @@ def _buf_module_impl(ctx):
         'mkdir -p "$OUT"',
         'cp "{}" "$OUT/buf.yaml"'.format(ctx.file.config.path),
     ]
-    for src in ctx.files.srcs:
-        rel = _workspace_rel(ctx, src, "proto")
+    for rel in sorted(staged.keys()):
+        src = staged[rel]
         lines.append('mkdir -p "$OUT/$(dirname "{}")"'.format(rel))
         lines.append('cp "{}" "$OUT/{}"'.format(src.path, rel))
     ctx.actions.run_shell(
         outputs = [out],
-        inputs = depset(direct = [ctx.file.config] + ctx.files.srcs),
+        inputs = depset(direct = [ctx.file.config] + ctx.files.srcs + dep_files),
         command = "\n".join(lines),
         mnemonic = "BufModule",
         progress_message = "Staging buf module %{label}",
@@ -298,15 +422,21 @@ def _buf_module_impl(ctx):
 
 _buf_module = rule(
     implementation = _buf_module_impl,
-    doc = """Directory with staged buf.yaml and protos at workspace-relative paths.
+    doc = """Directory with staged buf.yaml, workspace srcs, and import-only deps.
 
 `config` is copied as-is (BSR `deps` stay remote). Fetch happens in generate/lint.
+`deps` are not formatted: `buf_format` still walks workspace `srcs` only.
 """,
     attrs = {
         "srcs": attr.label_list(
             allow_files = [".proto"],
             mandatory = True,
             doc = "Protobuf sources (paths preserved under the module root).",
+        ),
+        "deps": attr.label_list(
+            providers = [BufDepInfo],
+            default = [],
+            doc = "`buf_deps` trees staged at their import paths. Not passed to `buf_format`. Distinct from `buf.yaml` `deps` (BSR modules).",
         ),
         "config": attr.label(
             allow_single_file = True,
@@ -316,12 +446,18 @@ _buf_module = rule(
     },
 )
 
-def buf_module(name, srcs, config = "//:buf.yaml", **kwargs):
+def buf_module(
+        name,
+        srcs,
+        config = "//:buf.yaml",
+        deps = [],
+        **kwargs):
     """Stage protos plus the consumer buf.yaml (default `//:buf.yaml`)."""
     _buf_module(
         name = name,
         srcs = srcs,
         config = config,
+        deps = deps,
         **kwargs
     )
 

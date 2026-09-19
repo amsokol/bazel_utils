@@ -9,7 +9,7 @@ Current module version: **0.2.8**. See [CHANGELOG.md](CHANGELOG.md) for release 
 | Module | Load | Public API |
 | --- | --- | --- |
 | [`bazel_utils_bazel`](#bazel_utils_bazel) | `@bazel_utils_bazel//:bazel.bzl` | `buildifier_test`, `buildifier_format` |
-| [`bazel_utils_buf`](#bazel_utils_buf) | `@bazel_utils_buf//:buf.bzl` | `buf_module`, `buf_generate`, `buf_lint_test`, `buf_format`, `buf_plugin` |
+| [`bazel_utils_buf`](#bazel_utils_buf) | `@bazel_utils_buf//:buf.bzl` | `buf_deps`, `buf_module`, `buf_generate`, `buf_lint_test`, `buf_format`, `buf_plugin` |
 | [`bazel_utils_protoc`](#bazel_utils_protoc) | `@bazel_utils_protoc//:extensions.bzl` | prebuilt `protoc-gen-*` (`protoc.plugin`) |
 | [`bazel_utils_go`](#bazel_utils_go) | `@bazel_utils_go//:go.bzl` | `golangci_test`, `govulncheck_test` |
 | [`bazel_utils_python`](#bazel_utils_python) | `@bazel_utils_python//:python.bzl` | `ruff_test`, `ruff_format`, `pip_audit_test` |
@@ -144,7 +144,7 @@ use_repo(buf, "buf")
 
 ```starlark
 # api/v1/BUILD.bazel
-load("@bazel_utils_buf//:buf.bzl", "buf_format", "buf_generate", "buf_lint_test", "buf_module", "buf_plugin")
+load("@bazel_utils_buf//:buf.bzl", "buf_deps", "buf_format", "buf_generate", "buf_lint_test", "buf_module", "buf_plugin")
 ```
 
 #### `buf.toolchains`
@@ -155,18 +155,41 @@ Module-extension tag. At most one per module; the root module's tag wins.
 | --- | --- | --- | --- | --- |
 | `version` | `string` | yes | — | Buf CLI release tag (must exist in this module's `registry.bzl`). |
 
+### `buf_deps`
+
+Import-only proto tree with one include root. Subfolders under that root stay, so files can import each other. Pass the target to `buf_module` `deps`. Not formatted.
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `name` | `string` | yes | — | Target name. |
+| `srcs` | `label_list` (`.proto`) | yes | — | Protobuf sources in this or another repository (file, filegroup, or glob). |
+| `strip_import_prefix` | `string` | no | `""` | Repository-relative include root to drop (`proto` and `/proto` are the same). Empty keeps the path inside that repository. |
+| `visibility` | `string_list` | no | package default | Target visibility. |
+
 ### `buf_module`
 
-Stages protos plus the consumer `buf.yaml` into a directory TreeArtifact (workspace-relative paths). `buf_generate` and `buf_lint_test` run Buf on that copy. `buf_format` uses the same `srcs` / `config` but writes the checkout.
+Stages protos plus the consumer `buf.yaml` into a directory TreeArtifact. Workspace `srcs` keep their checkout-relative paths. `buf_generate` and `buf_lint_test` run Buf on that copy. `buf_format` rewrites **workspace `srcs` only**.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `name` | `string` | yes | — | Target name. |
 | `srcs` | `label_list` (`.proto`) | yes | — | Protobuf sources; workspace-relative paths are preserved. |
+| `deps` | `label_list` (`buf_deps`) | no | `[]` | Import-only trees staged at their import paths. Not formatted. Distinct from `buf.yaml` `deps` (BSR modules). |
 | `config` | `label` | no | `"//:buf.yaml"` | Consumer `buf.yaml`. |
 | `visibility` | `string_list` | no | package default | Target visibility. |
 
+`buf.yaml` `includes` must cover both `srcs` and the staged `deps` import roots. Example: `import "markdown/options.proto"` from serde_markdown's `proto/markdown/options.proto`:
+
 ```starlark
+# serde_markdown proto/markdown/BUILD.bazel
+buf_deps(
+    name = "imports",
+    srcs = ["options.proto"],
+    strip_import_prefix = "/proto",
+    visibility = ["//visibility:public"],
+)
+
+# consumer
 filegroup(
     name = "protos",
     srcs = glob(["*.proto"]),
@@ -175,6 +198,7 @@ filegroup(
 buf_module(
     name = "module",
     srcs = [":protos"],
+    deps = ["@serde_markdown//proto/markdown:imports"],
 )
 ```
 

@@ -8,6 +8,13 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+### Added
+
+- `buf_deps`: import-only proto tree with its own `strip_import_prefix`
+  (include root). Subfolders stay, so files can import each other.
+- `buf_module` `deps`: `buf_deps` targets staged at those import paths,
+  not passed to `buf_format`. Distinct from `buf.yaml` `deps` (BSR).
+
 ## [0.2.8] - 2026-09-18
 
 ### Added

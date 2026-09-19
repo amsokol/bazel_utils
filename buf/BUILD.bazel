@@ -1,4 +1,5 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":generate_path_test.bzl", "dep_import_path_test", "repo_rel_from_short_path_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -44,4 +45,14 @@ bzl_library(
         ":lint_bzl",
         ":plugin_bzl",
     ],
+)
+
+repo_rel_from_short_path_test(
+    name = "repo_rel_from_short_path_test",
+    size = "small",
+)
+
+dep_import_path_test(
+    name = "dep_import_path_test",
+    size = "small",
 )

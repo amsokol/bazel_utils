@@ -35,6 +35,14 @@ test_suite(
     ],
 )
 
+test_suite(
+    name = "buf_tests",
+    tests = [
+        "@bazel_utils_buf//:dep_import_path_test",
+        "@bazel_utils_buf//:repo_rel_from_short_path_test",
+    ],
+)
+
 filegroup(
     name = "protoc_plugins",
     srcs = [
