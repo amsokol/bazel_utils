@@ -8,12 +8,18 @@ patch; breaking Starlark API changes bump the minor.
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-09-19
+
 ### Added
 
 - `buf_deps`: import-only proto tree with its own `strip_import_prefix`
   (include root). Subfolders stay, so files can import each other.
 - `buf_module` `deps`: `buf_deps` targets staged at those import paths,
   not passed to `buf_format`. Distinct from `buf.yaml` `deps` (BSR).
+
+### Changed
+
+- Raised every language module and the aggregator to `0.2.9` (lockstep).
 
 ## [0.2.8] - 2026-09-18
 
@@ -153,7 +159,8 @@ Initial tagged release. Language modules for Bazel workspaces:
 Pin modules with `git_override` at tag `v0.1.0`. `bazel_utils_core` is a
 transitive dependency, not a consumer API.
 
-[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.8...HEAD
+[unreleased]: https://github.com/amsokol/bazel_utils/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/amsokol/bazel_utils/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/amsokol/bazel_utils/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/amsokol/bazel_utils/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/amsokol/bazel_utils/compare/v0.2.5...v0.2.6
